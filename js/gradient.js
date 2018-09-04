@@ -17,10 +17,10 @@ const bezierCurveDivisions = 50;
 var bezierSurface, bezierSurfaceGeometry, bezierSurfaceMaterial;
 
 var bezierZValues = [
-  [0, 2, 3, 4],
-  [1, 3, 4, 1],
-  [2, 4, 5, 2],
-  [0, 0, 0, 0]
+  [0, 0, 1, 0],
+  [-1, 5, -5, 5],
+  [5, -1, 5, -1],
+  [0, 1, 0, 0]
 ];
 
 const xlength = bezierZValues[0].length - 1;
@@ -33,7 +33,12 @@ var bezierControlPoints = bezierZValues.map(
 );
 
 function drawBezierSurface(t) {
-  scene.remove(bezierSurface);
+  if (bezierSurface) {
+    scene.remove(bezierSurface);
+    bezierSurface.material.dispose();
+    bezierSurface.geometry.dispose();
+    bezierSurface = undefined;
+  }
 	var basicBezierModel = [];  // 4 bezier curves calculated from bezier control points
 	// calculating basic bezier model (main 4 bezier curves)
   bezierControlPoints = bezierZValues.map(
@@ -99,8 +104,6 @@ function drawBezierSurface(t) {
 	bezierSurfaceMaterial = new THREE.MeshBasicMaterial({ color: 0xaabbff, vertexColors: THREE.VertexColors });
 	bezierSurface = new THREE.Mesh(bezierSurfaceGeometry, bezierSurfaceMaterial);
 	bezierSurface.material.side = THREE.DoubleSide;
-  bezierSurfaceGeometry = null;
-  bezierSurface
 	scene.add(bezierSurface);
 }
 
