@@ -1,9 +1,8 @@
 const WIDTH = window.innerWidth;
 const HEIGHT = window.innerHeight;
-const ASPECT = HEIGHT /WIDTH;
 
 const scene = new THREE.Scene();
-const camera = new THREE.OrthographicCamera( 0, 1, 0, ASPECT, 1, 1000 );
+const camera = new THREE.OrthographicCamera( 0, 1, 0, 1, 1, 1000 );
 
 const renderer = new THREE.WebGLRenderer();
 renderer.setSize( window.innerWidth, window.innerHeight );
@@ -13,24 +12,36 @@ const ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
 
 camera.position.z = 5;
-const bezierCurveDivisions = 50;
+const bezierCurveDivisions = 8;
 let bezierSurface, bezierSurfaceGeometry, bezierSurfaceMaterial;
 
 let bezierZValues = [
   [0, 0, 1, 0],
-  [-1, 5, -5, 5],
-  [5, -1, 5, -1],
+  [-1, -1, -5, 5],
+  [5, 5, 5, -1],
   [0, 1, 0, 0]
 ];
 
 const xLength = bezierZValues[0].length - 1;
 const yLength = bezierZValues.length - 1;
 
+const startColor = new THREE.Color(0x662ac1);
+const endColor = new THREE.Color(0x2ac1c1);
+
 let bezierControlPoints = bezierZValues.map(
   (array, i) => array.map(
     (value, j) => new THREE.Vector3(j / xLength, i / yLength, value)
   )
 );
+
+function getVertexColor(vertex) {
+  const zColor1 = new THREE.Color(0xff0000).multiplyScalar(vertex.z);
+  const xColor1 = startColor.clone()
+		.multiplyScalar(1 - vertex.x)
+		.add(endColor.clone().multiplyScalar(vertex.x));
+  zColor1.add(xColor1);
+  return zColor1;
+}
 
 function drawBezierSurface(t) {
 	if (bezierSurface) {
@@ -43,7 +54,10 @@ function drawBezierSurface(t) {
 	// calculating basic bezier model (main 4 bezier curves)
 	bezierControlPoints = bezierZValues.map(
 	(array, i) => array.map(
-	  (value, j) => new THREE.Vector3(j / xLength, i / yLength, ((Math.sin(t + j) + 1) / 2) * value)
+	  (value, j) => new THREE.Vector3(
+	  	j / xLength,
+			(i > 0 && i < yLength) ? ((Math.sin(t + j) + 1) + i) / (yLength + 1) : i / yLength,
+			((Math.sin(t + j) + 1) / 2) * value)
 	)
 	);
 
@@ -79,14 +93,10 @@ function drawBezierSurface(t) {
 			v3 = i * (bezierCurveDivisions + 1) + (j+1);
 			v4 = (i+1) * (bezierCurveDivisions + 1) + (j+1);
 
-		const color1 = new THREE.Color(0xffffff);
-		color1.multiplyScalar(bezierCurvesVertices[v1].z / 2);
-		const color2 = new THREE.Color(0xffffff);
-		color2.multiplyScalar(bezierCurvesVertices[v2].z / 2);
-		const color3 = new THREE.Color(0xffffff);
-		color3.multiplyScalar(bezierCurvesVertices[v3].z / 2);
-		const color4 = new THREE.Color(0xffffff);
-		color4.multiplyScalar(bezierCurvesVertices[v4].z / 2);
+		const color1 = getVertexColor(bezierCurvesVertices[v1]);
+		const color2 = getVertexColor(bezierCurvesVertices[v2]);
+		const color3 = getVertexColor(bezierCurvesVertices[v3]);
+		const color4 = getVertexColor(bezierCurvesVertices[v4]);
 
 		face1 = new THREE.Face3(v1, v2, v3);
 		face1.vertexColors = [color1, color2, color3];
