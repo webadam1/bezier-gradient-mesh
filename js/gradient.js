@@ -3,9 +3,9 @@ const factorials = [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 3991
 const scene = new THREE.Scene();
 const camera = new THREE.OrthographicCamera( 0, 1, 0, 1, 1, 1000 );
 const camera2 = new THREE.PerspectiveCamera( 50, 1, 1, 1000 );
-camera2.position.z = 5;
+camera2.position.z = 3;
 camera2.position.x = 0.5;
-camera2.position.y = -3;
+camera2.position.y = -2;
 camera2.rotation.x = 0.8;
 scene.add(camera2);
 
@@ -17,15 +17,15 @@ const ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
 
 camera.position.z = 10;
-const bezierCurveDivisions = 20;
+const bezierCurveDivisions = 30;
 let bezierSurface, bezierSurfaceGeometry, bezierSurfaceMaterial;
 
 let bezierZValues = [
-  [0, 0, 5, 4, 3],
-  [0, 8, -10, 0, 3],
-  [0, 4, 2, 2, 8],
-  [4, -2, 0, 5, 4],
-  [0, 0, 5, 0, 3]
+  [0, 0, 5, 4, 4],
+  [0, 8, -10, 0, 8],
+  [0, 4, 8, 2, -5],
+  [4, -2, 0, 5, 8],
+  [0, 0, 8, 0, 0]
 ];
 
 const xLength = bezierZValues[0].length - 1;
@@ -41,7 +41,7 @@ let bezierControlPoints = bezierZValues.map(
 );
 
 function getVertexColor(vertex) {
-  const zColor1 = new THREE.Color(0xff9900).multiplyScalar(vertex.z * 10);
+  const zColor1 = new THREE.Color(0xff5500).multiplyScalar(vertex.z);
   const xColor1 = startColor.clone()
 		.multiplyScalar(1 - vertex.x)
 		.add(endColor.clone().multiplyScalar(vertex.x));
@@ -91,8 +91,8 @@ function drawBezierSurface(t) {
 		(array, i) => array.map(
 			(value, j) => new THREE.Vector3(
         j / xLength,
-				i / yLength,
-				((Math.sin(t / 4 + j) + 1) / 3) * value / 10)
+        (i > 0 && i < yLength) ? ((Math.sin((t + j) * 0.75) + 1) * 2 + i) / (yLength + 1) : i / yLength,
+				((Math.sin(t / 4 + j) + 1) / 3) * value / 2)
 		)
 	);
 
@@ -132,7 +132,7 @@ function drawBezierSurface(t) {
   bezierSurfaceGeometry.faces = bezierSurfaceFaces;
 	bezierSurfaceGeometry.computeFaceNormals();
 	bezierSurfaceGeometry.computeVertexNormals();
-	bezierSurfaceMaterial = new THREE.MeshBasicMaterial({ color: 0xaabbff, vertexColors: THREE.VertexColors, side: THREE.DoubleSide });
+	bezierSurfaceMaterial = new THREE.MeshBasicMaterial({ color: 0xaabbff, vertexColors: THREE.VertexColors });
 	bezierSurface = new THREE.Mesh(bezierSurfaceGeometry, bezierSurfaceMaterial);
 	bezierSurface.material.side = THREE.DoubleSide;
 	scene.add(bezierSurface);
