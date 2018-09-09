@@ -17,7 +17,7 @@ const ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
 
 camera.position.z = 10;
-const bezierCurveDivisions = 10;
+const bezierCurveDivisions = 20;
 let bezierSurface, bezierSurfaceGeometry, bezierSurfaceMaterial;
 
 let bezierZValues = [
@@ -41,7 +41,7 @@ let bezierControlPoints = bezierZValues.map(
 );
 
 function getVertexColor(vertex) {
-  const zColor1 = new THREE.Color(0xff0000).multiplyScalar(vertex.z);
+  const zColor1 = new THREE.Color(0xff9900).multiplyScalar(vertex.z * 10);
   const xColor1 = startColor.clone()
 		.multiplyScalar(1 - vertex.x)
 		.add(endColor.clone().multiplyScalar(vertex.x));
@@ -79,19 +79,6 @@ function getPoint(controlPoints, u, v) {
 	return vector;
 }
 
-const xDivisionCount = bezierCurveDivisions;
-const yDivisionCount = bezierCurveDivisions;
-let count = 0;
-
-const surfaceElements = [];
-
-for(let u = 0; u <= 1; u += 1 / xDivisionCount) {
-  for(let v = 0; v <= 1; v += 1 / yDivisionCount) {
-    surfaceElements.push(getPoint(bezierControlPoints, u, v));
-  }
-}
-console.log(surfaceElements);
-
 function drawBezierSurface(t) {
 	if (bezierSurface) {
 		scene.remove(bezierSurface);
@@ -105,16 +92,16 @@ function drawBezierSurface(t) {
 			(value, j) => new THREE.Vector3(
         j / xLength,
 				i / yLength,
-				((Math.sin(t / 4 + j) + 1) / 3) * value)
+				((Math.sin(t / 4 + j) + 1) / 3) * value / 10)
 		)
 	);
 
   const surfaceElements = [];
   const vertexColors = [];
 
-  for(let u = 0; u <= 1; u += 1 / xDivisionCount) {
-    for(let v = 0; v <= 1; v += 1 / yDivisionCount) {
-      const vertex = getPoint(bezierControlPoints, u, v);
+  for(let i = 0; i <= bezierCurveDivisions; i++) {
+    for(let j = 0; j <= bezierCurveDivisions; j++) {
+      const vertex = getPoint(bezierControlPoints, i / bezierCurveDivisions, j /bezierCurveDivisions);
       surfaceElements.push(vertex);
       vertexColors.push(getVertexColor(vertex));
     }
@@ -125,12 +112,12 @@ function drawBezierSurface(t) {
 	const bezierSurfaceFaces = [];
 	// creating faces from vertices
 	let v1, v2, v3, v4, face1, face2;  // vertex indices in bezierSurfaceVertices array
-	for (let i=0; i < bezierCurveDivisions; i++) {
-		for (let j=0; j < bezierCurveDivisions; j++) {
+	for (let i = 0; i < bezierCurveDivisions; i++) {
+		for (let j = 0; j < bezierCurveDivisions; j++) {
 			v1 = i * (bezierCurveDivisions + 1) + j;
-			v2 = (i+1) * (bezierCurveDivisions + 1) + j;
-			v3 = i * (bezierCurveDivisions + 1) + (j+1);
-			v4 = (i+1) * (bezierCurveDivisions + 1) + (j+1);
+			v2 = (i + 1) * (bezierCurveDivisions + 1) + j;
+			v3 = i * (bezierCurveDivisions + 1) + (j + 1);
+			v4 = (i + 1) * (bezierCurveDivisions + 1) + (j + 1);
 
       face1 = new THREE.Face3(v1, v2, v3);
       face1.vertexColors = [vertexColors[v1], vertexColors[v2], vertexColors[v3]];
@@ -141,17 +128,17 @@ function drawBezierSurface(t) {
 		}
 	}
 	bezierSurfaceGeometry = new THREE.Geometry();
-	bezierSurfaceGeometry.vertices = bezierSurfaceVertices;
-	bezierSurfaceGeometry.faces = bezierSurfaceFaces;
+  bezierSurfaceGeometry.vertices = bezierSurfaceVertices;
+  bezierSurfaceGeometry.faces = bezierSurfaceFaces;
 	bezierSurfaceGeometry.computeFaceNormals();
 	bezierSurfaceGeometry.computeVertexNormals();
-	bezierSurfaceMaterial = new THREE.MeshBasicMaterial({ color: 0xaabbff, vertexColors: THREE.VertexColors });
+	bezierSurfaceMaterial = new THREE.MeshBasicMaterial({ color: 0xaabbff, vertexColors: THREE.VertexColors, side: THREE.DoubleSide });
 	bezierSurface = new THREE.Mesh(bezierSurfaceGeometry, bezierSurfaceMaterial);
 	bezierSurface.material.side = THREE.DoubleSide;
 	scene.add(bezierSurface);
 }
 
-var animate = function (t) {
+const animate = (t) => {
   drawBezierSurface(t);
 	renderer.render( scene, camera );
 	requestAnimationFrame(() => animate(t + 0.05));
