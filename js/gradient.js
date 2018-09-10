@@ -10,14 +10,16 @@ camera2.rotation.x = 0.8;
 scene.add(camera2);
 
 const renderer = new THREE.WebGLRenderer();
-renderer.setSize( window.innerWidth, window.innerHeight );
-document.body.appendChild( renderer.domElement );
+const parentElement = document.querySelector('.gradient-mesh');
+renderer.setSize(parentElement.clientWidth, parentElement.clientHeight);
+renderer.domElement.style = '';
+parentElement.insertBefore(renderer.domElement, parentElement.firstChild);
 
 const ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
 
 camera.position.z = 10;
-const bezierCurveDivisions = 30;
+const bezierCurveDivisions = 20;
 let bezierSurface, bezierSurfaceGeometry, bezierSurfaceMaterial;
 
 let bezierZValues = [
