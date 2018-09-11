@@ -92,7 +92,7 @@ function drawBezierSurface(t) {
 	bezierControlPoints = bezierZValues.map(
 		(array, i) => array.map(
 			(value, j) => new THREE.Vector3(
-        j / xLength,
+        (j > xLength * 0.3 && j < xLength * 0.7) ? ((Math.sin((t + i) * 0.5) + 1) * 3 * ((j % 2) * 8 - 0.25) + j) / (xLength + 1) : j / xLength,
         (i > 0 && i < yLength) ? ((Math.sin((t + j) * 0.75) + 1) * 2 + i) / (yLength + 1) : i / yLength,
 				((Math.sin(t / 4 + j) + 1) / 3) * value / 2)
 		)
@@ -140,9 +140,22 @@ function drawBezierSurface(t) {
 	scene.add(bezierSurface);
 }
 
+//COMPOSER
+const composer = new THREE.EffectComposer(renderer);
+
+//PASSES
+const renderPass = new THREE.RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const shaderPass = new THREE.ShaderPass(simpleNoiseShader);
+composer.addPass(shaderPass);
+
+shaderPass.renderToScreen = true;
+shaderPass.uniforms.time.value = 0.02;
+
 const animate = (t) => {
   drawBezierSurface(t);
-	renderer.render( scene, camera );
+	composer.render();
 	requestAnimationFrame(() => animate(t + 0.05));
 };
 
