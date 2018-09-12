@@ -147,15 +147,16 @@ const composer = new THREE.EffectComposer(renderer);
 const renderPass = new THREE.RenderPass(scene, camera);
 composer.addPass(renderPass);
 
-const shaderPass = new THREE.ShaderPass(simpleNoiseShader);
+const shaderPass = new THREE.ShaderPass(gradientMeshShader);
 composer.addPass(shaderPass);
 
 shaderPass.renderToScreen = true;
-shaderPass.uniforms.time.value = 0.02;
+shaderPass.uniforms.resolution.value = {x: parentElement.clientWidth, y: parentElement.clientHeight };
 
 const animate = (t) => {
-  drawBezierSurface(t);
+  // drawBezierSurface(t);
 	composer.render();
+  shaderPass.uniforms.time.value = t / 3;
 	requestAnimationFrame(() => animate(t + 0.05));
 };
 
