@@ -22,21 +22,21 @@ camera.position.z = 10;
 const bezierCurveDivisions = 20;
 let bezierSurface, bezierSurfaceGeometry, bezierSurfaceMaterial;
 
-let bezierZValues = [
-  [0, 0, 5, 4, 4],
-  [0, 8, -10, 0, 8],
-  [0, 4, 8, 2, -5],
-  [4, -2, 0, 5, 8],
-  [0, 0, 8, 0, 0]
+let hermiteZValues = [
+  [0, 0, 0.5, 0.4, 0.4],
+  [0, 0.8, 0, 0, 0.8],
+  [0, 0.4, 0.8, 0.2, 0.5],
+  [0.4, 0.2, 0, 0.5, 0.8],
+  [0, 0, 0.8, 0, 0]
 ];
 
-const xLength = bezierZValues[0].length - 1;
-const yLength = bezierZValues.length - 1;
+const xLength = hermiteZValues[0].length - 1;
+const yLength = hermiteZValues.length - 1;
 
 const startColor = new THREE.Color(0x662ac1);
 const endColor = new THREE.Color(0x2ac1c1);
 
-let bezierControlPoints = bezierZValues.map(
+let bezierControlPoints = hermiteZValues.map(
   (array, i) => array.map(
     (value, j) => new THREE.Vector3(j / xLength, i / yLength, value)
   )
@@ -50,6 +50,61 @@ function getVertexColor(vertex) {
   zColor1.add(xColor1);
   return zColor1;
 }
+
+function getHermiteVertexColor(vertex) {
+  return new THREE.Color(0xffffff).multiplyScalar(vertex.z);
+}
+
+function transpose(matrix) {
+  const w = matrix.length || 0;
+  const h = matrix[0] instanceof Array ? matrix[0].length : 0;
+  if (h === 0 || w === 0) { return []; }
+  const t = [];
+
+  for(let i = 0; i < h; i++) {
+    t[i] = [];
+    for(let j = 0; j < w; j++) {
+      t[i][j] = matrix[j][i];
+    }
+  }
+  return t;
+}
+
+function multiplyMatrices(A, B) {
+  const result = new Array(A.length).fill(0).map(row => new Array(B[0].length).fill(0));
+
+  return result.map((row, i) => {
+    return row.map((val, j) => {
+      return A[i].reduce((sum, elm, k) => sum + (elm*B[k][j]) ,0)
+    })
+  })
+}
+
+
+const hermiteBatch = [
+  [0, 1, 0, 0],
+  [0.8, 0.2, 0, 0],
+  [0, 0, 0, 0],
+  [0, 0, 0, 0],
+];
+
+const HM = [
+  [2, -2, 1, 1],
+  [-3, 3, -2, -1],
+  [0, 0, 1, 0],
+  [1, 0, 0, 0],
+];
+
+const HM_T = transpose(HM);
+
+function getBatchPoint(coefficientMatrix, u, v) {
+  const Uvec = [[u ** 3], [u ** 2], [u], [1]];
+  const Vvec = [[v ** 3], [v ** 2], [v], [1]];
+  return multiplyMatrices(multiplyMatrices(multiplyMatrices(multiplyMatrices(transpose(Uvec), HM), hermiteBatch), HM_T), Vvec)[0][0];
+}
+console.log(getBatchPoint(hermiteBatch, 0, 0));
+console.log(getBatchPoint(hermiteBatch, 0.5, 0.5));
+console.log(getBatchPoint(hermiteBatch, 1, 1));
 
 function getPoint(controlPoints, u, v) {
 	const vector = new THREE.Vector3(0, 0, 0);
@@ -89,7 +144,7 @@ function drawBezierSurface(t) {
 		bezierSurface = undefined;
 	}
 
-	bezierControlPoints = bezierZValues.map(
+	bezierControlPoints = hermiteZValues.map(
 		(array, i) => array.map(
 			(value, j) => new THREE.Vector3(
         j / xLength,
@@ -103,9 +158,9 @@ function drawBezierSurface(t) {
 
   for(let i = 0; i <= bezierCurveDivisions; i++) {
     for(let j = 0; j <= bezierCurveDivisions; j++) {
-      const vertex = getPoint(bezierControlPoints, i / bezierCurveDivisions, j /bezierCurveDivisions);
+      const vertex = new THREE.Vector3(i / bezierCurveDivisions, j / bezierCurveDivisions, getBatchPoint(hermiteBatch, i / bezierCurveDivisions, j / bezierCurveDivisions));
       surfaceElements.push(vertex);
-      vertexColors.push(getVertexColor(vertex));
+      vertexColors.push(getHermiteVertexColor(vertex));
     }
   }
 
@@ -142,8 +197,8 @@ function drawBezierSurface(t) {
 
 const animate = (t) => {
   drawBezierSurface(t);
-	renderer.render( scene, camera );
-	requestAnimationFrame(() => animate(t + 0.05));
+	renderer.render(scene, camera);
+	// requestAnimationFrame(() => animate(t + 0.05));
 };
 
 animate(0);
