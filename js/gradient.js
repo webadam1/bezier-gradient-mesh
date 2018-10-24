@@ -19,7 +19,7 @@ const ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
 
 camera.position.z = 10;
-const bezierCurveDivisions = 20;
+const bezierCurveDivisions = 4;
 let bezierSurface, bezierSurfaceGeometry, bezierSurfaceMaterial;
 
 let hermiteZValues = [
@@ -52,7 +52,9 @@ function getVertexColor(vertex) {
 }
 
 function getHermiteVertexColor(vertex) {
-  return new THREE.Color(0xffffff).multiplyScalar(vertex.z);
+  const rgb = Math.ceil(Math.min(Math.max(vertex.z, 0), 1) * 255);
+  const color = `rgb(${rgb}, ${rgb}, ${rgb})`;
+  return new THREE.Color(color);
 }
 
 function transpose(matrix) {
@@ -81,7 +83,21 @@ function multiplyMatrices(A, B) {
 }
 
 
-const hermiteBatch = [
+const hermiteBatchX = [
+  [0, 0.1, 0, 0],
+  [0, 0.1, 0, 0],
+  [0, 0, 0, 0],
+  [0, 0, 0, 0],
+];
+
+const hermiteBatchY = [
+  [0, 0, 0, 0],
+  [0.1, 0.1, 0, 0],
+  [0, 0, 0, 0],
+  [0, 0, 0, 0],
+];
+
+const hermiteBatchZ = [
   [0, 1, 0, 0],
   [0.8, 0.2, 0, 0],
   [0, 0, 0, 0],
@@ -97,14 +113,46 @@ const HM = [
 
 const HM_T = transpose(HM);
 
-function getBatchPoint(coefficientMatrix, u, v) {
+function getBatches(zValues) {
+  const batches = [];
+  const rowLength = zValues[0].length;
+  if (zValues.every(row => row.length === rowLength)) {
+    for (let i = 0; i < zValues.length - 1; i++) {
+      for (let j = 0; j < zValues[i].length - 1; j++) {
+        const batch = {};
+        batch.x = [
+          [i / rowLength, (i + 1) / rowLength, 0, 0],
+          [i / rowLength, (i + 1) / rowLength, 0, 0],
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+        ];
+        batch.y = [
+          [j / rowLength, j / rowLength, 0, 0],
+          [(j + 1) / rowLength, (j + 1) / rowLength, 0, 0],
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+        ];
+        batch.z = [
+          [zValues[i][j], zValues[i][j + 1], 0, 0],
+          [zValues[i + 1][j], zValues[i + 1][j + 1], 0, 0],
+          [0, 0, 0, 0],
+          [0, 0, 0, 0],
+        ];
+        batches.push(batch);
+      }
+    }
+    return batches;
+  } else {
+    throw ('There must be the same amount of control points in each row.')
+  }
+}
+
+function getBatchPoint(hermiteBatch, u, v) {
   const Uvec = [[u ** 3], [u ** 2], [u], [1]];
   const Vvec = [[v ** 3], [v ** 2], [v], [1]];
-  return multiplyMatrices(multiplyMatrices(multiplyMatrices(multiplyMatrices(transpose(Uvec), HM), hermiteBatch), HM_T), Vvec)[0][0];
+  const vec = multiplyMatrices(multiplyMatrices(multiplyMatrices(multiplyMatrices(transpose(Uvec), HM), hermiteBatch), HM_T), Vvec);
+  return vec[0][0];
 }
-console.log(getBatchPoint(hermiteBatch, 0, 0));
-console.log(getBatchPoint(hermiteBatch, 0.5, 0.5));
-console.log(getBatchPoint(hermiteBatch, 1, 1));
 
 function getPoint(controlPoints, u, v) {
 	const vector = new THREE.Vector3(0, 0, 0);
@@ -136,6 +184,9 @@ function getPoint(controlPoints, u, v) {
 	return vector;
 }
 
+const allBatches = getBatches(hermiteZValues);
+console.log(allBatches);
+
 function drawBezierSurface(t) {
 	if (bezierSurface) {
 		scene.remove(bezierSurface);
@@ -144,25 +195,21 @@ function drawBezierSurface(t) {
 		bezierSurface = undefined;
 	}
 
-	bezierControlPoints = hermiteZValues.map(
-		(array, i) => array.map(
-			(value, j) => new THREE.Vector3(
-        j / xLength,
-        (i > 0 && i < yLength) ? ((Math.sin((t + j) * 0.75) + 1) * 2 + i) / (yLength + 1) : i / yLength,
-				((Math.sin(t / 4 + j) + 1) / 3) * value / 2)
-		)
-	);
-
   const surfaceElements = [];
   const vertexColors = [];
-
-  for(let i = 0; i <= bezierCurveDivisions; i++) {
-    for(let j = 0; j <= bezierCurveDivisions; j++) {
-      const vertex = new THREE.Vector3(i / bezierCurveDivisions, j / bezierCurveDivisions, getBatchPoint(hermiteBatch, i / bezierCurveDivisions, j / bezierCurveDivisions));
-      surfaceElements.push(vertex);
-      vertexColors.push(getHermiteVertexColor(vertex));
+  allBatches.forEach((batch) => {
+    for(let i = 0; i <= bezierCurveDivisions; i++) {
+      for(let j = 0; j <= bezierCurveDivisions; j++) {
+        const vertex = new THREE.Vector3(
+          getBatchPoint(batch.x, i / bezierCurveDivisions, j / bezierCurveDivisions),
+          getBatchPoint(batch.y, i / bezierCurveDivisions, j / bezierCurveDivisions),
+          getBatchPoint(batch.z, i / bezierCurveDivisions, j / bezierCurveDivisions)
+        );
+        surfaceElements.push(vertex);
+        vertexColors.push(getHermiteVertexColor(vertex));
+      }
     }
-  }
+  });
 
 	// now we've got full bezier model, it's time to create bezier surface and add it to the scene
 	const bezierSurfaceVertices = surfaceElements;
@@ -189,7 +236,7 @@ function drawBezierSurface(t) {
   bezierSurfaceGeometry.faces = bezierSurfaceFaces;
 	bezierSurfaceGeometry.computeFaceNormals();
 	bezierSurfaceGeometry.computeVertexNormals();
-	bezierSurfaceMaterial = new THREE.MeshBasicMaterial({ color: 0xaabbff, vertexColors: THREE.VertexColors });
+	bezierSurfaceMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: THREE.VertexColors });
 	bezierSurface = new THREE.Mesh(bezierSurfaceGeometry, bezierSurfaceMaterial);
 	bezierSurface.material.side = THREE.DoubleSide;
 	scene.add(bezierSurface);
@@ -198,7 +245,7 @@ function drawBezierSurface(t) {
 const animate = (t) => {
   drawBezierSurface(t);
 	renderer.render(scene, camera);
-	// requestAnimationFrame(() => animate(t + 0.05));
+	requestAnimationFrame(() => animate(t + 0.05));
 };
 
 animate(0);

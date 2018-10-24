@@ -15,9 +15,9 @@ body {
 .gradient-mesh {
   position: relative;
   display: flex;
-  width: 50vh;
+  width: 70vh;
   max-width: 80vw;
-  height: 50vh;
+  height: 70vh;
   max-height: 80vw;
   color: #fff;
   font-size: 5vh;
