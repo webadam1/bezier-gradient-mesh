@@ -19,15 +19,14 @@ const ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
 
 camera.position.z = 10;
-const bezierCurveDivisions = 4;
+const bezierCurveDivisions = 10;
 let bezierSurface, bezierSurfaceGeometry, bezierSurfaceMaterial;
 
 let hermiteZValues = [
-  [0, 0, 0.5, 0.4, 0.4],
-  [0, 0.8, 0, 0, 0.8],
-  [0, 0.4, 0.8, 0.2, 0.5],
-  [0.4, 0.2, 0, 0.5, 0.8],
-  [0, 0, 0.8, 0, 0]
+  [0, 0.5, 0, 0],
+  [0, 1, 0, 0.5],
+  [0.5, 0.5, 0.5, 0],
+  [1, 0, 0.2, 0],
 ];
 
 const xLength = hermiteZValues[0].length - 1;
@@ -82,28 +81,6 @@ function multiplyMatrices(A, B) {
   })
 }
 
-
-const hermiteBatchX = [
-  [0, 0.1, 0, 0],
-  [0, 0.1, 0, 0],
-  [0, 0, 0, 0],
-  [0, 0, 0, 0],
-];
-
-const hermiteBatchY = [
-  [0, 0, 0, 0],
-  [0.1, 0.1, 0, 0],
-  [0, 0, 0, 0],
-  [0, 0, 0, 0],
-];
-
-const hermiteBatchZ = [
-  [0, 1, 0, 0],
-  [0.8, 0.2, 0, 0],
-  [0, 0, 0, 0],
-  [0, 0, 0, 0],
-];
-
 const HM = [
   [2, -2, 1, 1],
   [-3, 3, -2, -1],
@@ -115,26 +92,26 @@ const HM_T = transpose(HM);
 
 function getBatches(zValues) {
   const batches = [];
-  const rowLength = zValues[0].length;
-  if (zValues.every(row => row.length === rowLength)) {
+  const rowLength = zValues[0].length - 1;
+  if (zValues.every(row => row.length === rowLength + 1)) {
     for (let i = 0; i < zValues.length - 1; i++) {
       for (let j = 0; j < zValues[i].length - 1; j++) {
         const batch = {};
         batch.x = [
-          [i / rowLength, (i + 1) / rowLength, 0, 0],
-          [i / rowLength, (i + 1) / rowLength, 0, 0],
+          [i / rowLength, (i + 1) / rowLength, 0.5, 0.5],
+          [i / rowLength, (i + 1) / rowLength, 0.5, 0.5],
           [0, 0, 0, 0],
           [0, 0, 0, 0],
         ];
         batch.y = [
           [j / rowLength, j / rowLength, 0, 0],
           [(j + 1) / rowLength, (j + 1) / rowLength, 0, 0],
-          [0, 0, 0, 0],
-          [0, 0, 0, 0],
+          [0.5, 0.5, 0, 0],
+          [0.5, 0.5, 0, 0],
         ];
         batch.z = [
-          [zValues[i][j], zValues[i][j + 1], 0, 0],
-          [zValues[i + 1][j], zValues[i + 1][j + 1], 0, 0],
+          [zValues[i][j], zValues[i + 1][j], 0, 0],
+          [zValues[i][j + 1], zValues[i + 1][j + 1], 0, 0],
           [0, 0, 0, 0],
           [0, 0, 0, 0],
         ];
@@ -185,66 +162,65 @@ function getPoint(controlPoints, u, v) {
 }
 
 const allBatches = getBatches(hermiteZValues);
-console.log(allBatches);
+let hermiteBatches = new THREE.Group();
 
 function drawBezierSurface(t) {
-	if (bezierSurface) {
-		scene.remove(bezierSurface);
-		bezierSurface.material.dispose();
-		bezierSurface.geometry.dispose();
-		bezierSurface = undefined;
+	if (hermiteBatches) {
+    for (let i = hermiteBatches.children.length - 1; i >= 0; i--) {
+      hermiteBatches.remove(hermiteBatches.children[i]);
+    }
+		scene.remove(hermiteBatches);
 	}
+  hermiteBatches = new THREE.Group();
 
-  const surfaceElements = [];
-  const vertexColors = [];
-  allBatches.forEach((batch) => {
+  allBatches.forEach((batch, batchIndex) => {
+    const surfaceElements = [];
+    let vertexColors = [];
     for(let i = 0; i <= bezierCurveDivisions; i++) {
       for(let j = 0; j <= bezierCurveDivisions; j++) {
-        const vertex = new THREE.Vector3(
-          getBatchPoint(batch.x, i / bezierCurveDivisions, j / bezierCurveDivisions),
-          getBatchPoint(batch.y, i / bezierCurveDivisions, j / bezierCurveDivisions),
-          getBatchPoint(batch.z, i / bezierCurveDivisions, j / bezierCurveDivisions)
-        );
+        const x = getBatchPoint(batch.x, i / bezierCurveDivisions, j / bezierCurveDivisions);
+        const y = getBatchPoint(batch.y, i / bezierCurveDivisions, j / bezierCurveDivisions);
+        const z = getBatchPoint(batch.z, i / bezierCurveDivisions, j / bezierCurveDivisions);
+        const vertex = new THREE.Vector3(x, y, z * ((Math.cos(t + x * 2) + 1) / 2));
         surfaceElements.push(vertex);
         vertexColors.push(getHermiteVertexColor(vertex));
       }
     }
+    let bezierSurfaceVertices = surfaceElements;
+    const bezierSurfaceFaces = [];
+    // creating faces from vertices
+    let v1, v2, v3, v4, face1, face2;  // vertex indices in bezierSurfaceVertices array
+    for (let i = 0; i < bezierCurveDivisions; i++) {
+      for (let j = 0; j < bezierCurveDivisions; j++) {
+        v1 = i * (bezierCurveDivisions + 1) + j;
+        v2 = (i + 1) * (bezierCurveDivisions + 1) + j;
+        v3 = i * (bezierCurveDivisions + 1) + (j + 1);
+        v4 = (i + 1) * (bezierCurveDivisions + 1) + (j + 1);
+
+        face1 = new THREE.Face3(v1, v2, v3);
+        face1.vertexColors = [vertexColors[v1], vertexColors[v2], vertexColors[v3]];
+        face2 = new THREE.Face3(v2, v4, v3);
+        face2.vertexColors = [vertexColors[v2], vertexColors[v4], vertexColors[v3]];
+        bezierSurfaceFaces.push( face1 );
+        bezierSurfaceFaces.push( face2 );
+      }
+    }
+    const hermiteSurfaceGeometry = new THREE.Geometry();
+    hermiteSurfaceGeometry.vertices = bezierSurfaceVertices;
+    hermiteSurfaceGeometry.faces = bezierSurfaceFaces;
+    hermiteSurfaceGeometry.computeFaceNormals();
+    hermiteSurfaceGeometry.computeVertexNormals();
+    const hermiteSurfaceMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: THREE.VertexColors });
+    const hermiteSurface = new THREE.Mesh(hermiteSurfaceGeometry, hermiteSurfaceMaterial);
+    hermiteSurface.material.side = THREE.DoubleSide;
+    hermiteBatches.add(hermiteSurface);
   });
-
-	// now we've got full bezier model, it's time to create bezier surface and add it to the scene
-	const bezierSurfaceVertices = surfaceElements;
-	const bezierSurfaceFaces = [];
-	// creating faces from vertices
-	let v1, v2, v3, v4, face1, face2;  // vertex indices in bezierSurfaceVertices array
-	for (let i = 0; i < bezierCurveDivisions; i++) {
-		for (let j = 0; j < bezierCurveDivisions; j++) {
-			v1 = i * (bezierCurveDivisions + 1) + j;
-			v2 = (i + 1) * (bezierCurveDivisions + 1) + j;
-			v3 = i * (bezierCurveDivisions + 1) + (j + 1);
-			v4 = (i + 1) * (bezierCurveDivisions + 1) + (j + 1);
-
-      face1 = new THREE.Face3(v1, v2, v3);
-      face1.vertexColors = [vertexColors[v1], vertexColors[v2], vertexColors[v3]];
-      face2 = new THREE.Face3(v2, v4, v3);
-      face2.vertexColors = [vertexColors[v2], vertexColors[v4], vertexColors[v3]];
-			bezierSurfaceFaces.push( face1 );
-			bezierSurfaceFaces.push( face2 );
-		}
-	}
-	bezierSurfaceGeometry = new THREE.Geometry();
-  bezierSurfaceGeometry.vertices = bezierSurfaceVertices;
-  bezierSurfaceGeometry.faces = bezierSurfaceFaces;
-	bezierSurfaceGeometry.computeFaceNormals();
-	bezierSurfaceGeometry.computeVertexNormals();
-	bezierSurfaceMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: THREE.VertexColors });
-	bezierSurface = new THREE.Mesh(bezierSurfaceGeometry, bezierSurfaceMaterial);
-	bezierSurface.material.side = THREE.DoubleSide;
-	scene.add(bezierSurface);
+  scene.add(hermiteBatches);
 }
 
 const animate = (t) => {
   drawBezierSurface(t);
-	renderer.render(scene, camera);
+	renderer.render(scene, camera2);
 	requestAnimationFrame(() => animate(t + 0.05));
 };
 
