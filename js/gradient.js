@@ -168,9 +168,23 @@ function drawHermiteSurface(t) {
   scene.add(hermiteBatches);
 }
 
+//COMPOSER
+const composer = new THREE.EffectComposer(renderer);
+
+//PASSES
+const renderPass = new THREE.RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const shaderPass = new THREE.ShaderPass(gradientMeshShader);
+composer.addPass(shaderPass);
+
+shaderPass.renderToScreen = true;
+shaderPass.uniforms.resolution.value = {x: parentElement.clientWidth, y: parentElement.clientHeight };
+
 const animate = (t) => {
-  drawHermiteSurface(t);
-	renderer.render(scene, camera);
+  // drawBezierSurface(t);
+	composer.render();
+  shaderPass.uniforms.time.value = t / 3;
 	requestAnimationFrame(() => animate(t + 0.05));
 };
 
