@@ -20,14 +20,18 @@ camera.position.z = 10;
 const hermiteCurveDivisions = 10;
 
 let hermiteZValues = [
-  [0, 0.5, 0, 0],
-  [0, 1, 0, 0.5],
+  [0, 0.5, 0, 0.1],
+  [0.2, 1, 0.3, 0.5],
   [0.5, 0.5, 0.5, 0],
 ];
 
-function getHermiteVertexColor(vertex) {
-  const rgb = Math.ceil(Math.min(Math.max(vertex.z, 0), 1) * 255);
-  const color = `rgb(${rgb}, ${rgb}, ${rgb})`;
+function getHermiteVertexColor({ x, y, z }) {
+  let r, g, b;
+  r = Math.ceil(((102 * x) + (42 * (1 - x))) / 2);
+  g = Math.ceil(((42 * x) + (193 * (1 - x))));
+  b = Math.ceil(((193 * x) + (193 * (1 - x))));
+  r += Math.ceil(Math.min(Math.max(z, 0), 1) * 255);
+  const color = `rgb(${r}, ${g}, ${b})`;
   return new THREE.Color(color);
 }
 
@@ -123,7 +127,11 @@ function drawHermiteSurface(t) {
         const x = getBatchPoint(batch.x, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
         const y = getBatchPoint(batch.y, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
         const z = getBatchPoint(batch.z, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const vertex = new THREE.Vector3(x, y, z * ((Math.cos(t + x * 2) + 1) / 2));
+        const vertex = new THREE.Vector3(
+          x,
+          y,
+          z * ((Math.cos(t + x * 2) + 1) / 2)
+        );
         surfaceElements.push(vertex);
         vertexColors.push(getHermiteVertexColor(vertex));
       }
