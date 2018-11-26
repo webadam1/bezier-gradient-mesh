@@ -69,6 +69,8 @@ const HM = [
 
 const HM_T = transpose(HM);
 
+console.log(HM, multiplyMatrices(HM, HM_T));
+
 function getBatches(zValues) {
   const batches = [];
   const columnLength = zValues.length - 1;

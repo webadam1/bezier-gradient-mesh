@@ -1,50 +1,8 @@
-const factorials = [1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800, 479001600, 6227020800, 87178291200, 1307674368000, 20922789888000, 355687428096000, 6402373705728000, 121645100408832000, 2432902008176640000, 51090942171709440000, 1124000727777607680000, 25852016738884976640000, 620448401733239439360000, 15511210043330985984000000, 403291461126605635584000000, 10888869450418352160768000000, 304888344611713860501504000000, 8841761993739701954543616000000, 265252859812191058636308480000000, 8222838654177922817725562880000000, 263130836933693530167218012160000000, 8683317618811886495518194401280000000, 295232799039604140847618609643520000000];
-
-const shaderCPMatrix = [
-  [{r: 0.5, g: 0.2, b: 0.9}, {r: 0., g: 1., b: 1.}, {r: 0., g: 1., b: 0.5}, {r: 0., g: 1., b: 0.5}],
-  [{r: 1., g: 0., b: 1.}, {r: 0., g: 0., b: 0.}, {r: 0., g: 0., b: 1.}, {r: 0., g: 1., b: 0.5}],
-  [{r: 0., g: 0.5, b: 0.5}, {r: 0., g: 1., b: 1.}, {r: 0.5, g: 0.5, b: 1.}, {r: 0., g: 1., b: 0.5}],
-  [{r: 1., g: 1., b: 1.}, {r: 0., g: 1., b: 1.}, {r: 0.5, g: 1., b: 0.5}, {r: 0.8, g: 1., b: 0.5}],
-];
-const n = shaderCPMatrix.length;
-const m = shaderCPMatrix[0].length;
-const shaderCoefficientsU = [];
-for(let i = 0; i < n; i++) {
-  if (i === 0 || i === n) {
-    shaderCoefficientsU.push(1);
-  } else {
-    shaderCoefficientsU.push(factorials[n - 1] / (factorials[i] * factorials[n - i - 1]));
-  }
-}
-const shaderCoefficientsV = [];
-for(let j = 0; j < m; j++) {
-  if (j === 0 || j === m) {
-    shaderCoefficientsV.push(1);
-  } else {
-    shaderCoefficientsV.push(factorials[m - 1] / (factorials[j] * factorials[m - j - 1]));
-  }
-}
-
-let shaderCPArray = shaderCPMatrix[0].map(function(col, i){
-  return shaderCPMatrix.map(function(row){
-    return row[i];
-  });
-});
-shaderCPArray = [].concat(...shaderCPArray.reverse()).reverse();
-shaderCPArray = shaderCPArray.map((v) => new THREE.Vector3(v.r, v.g, v.b));
-
-console.log(shaderCPArray);
 const gradientMeshShader = {
 
   uniforms: {
-
-    "tDiffuse": { type: "t", value: null },
     "time":     { type: "f", value: 0.0 },
     "resolution": { type: "v2", value: { x: 600, y: 600} },
-    "controlPoints": { type: 'v3[]', value: shaderCPArray },
-    "coefficientsU": { type: "f[]", value: shaderCoefficientsU },
-    "coefficientsV": { type: "f[]", value: shaderCoefficientsV },
-
   },
 
   vertexShader: [
@@ -61,37 +19,207 @@ const gradientMeshShader = {
   ].join("\n"),
 
   fragmentShader: [
-
-    "uniform vec2 resolution;",
-    "uniform vec2 u_mouse;",
     "uniform float time;",
-    `uniform vec3 controlPoints[${shaderCPArray.length}];`,
-    `uniform float coefficientsU[${shaderCoefficientsU.length}];`,
-    `uniform float coefficientsV[${shaderCoefficientsV.length}];`,
+    "uniform vec2 resolution;",
+    `
+    vec4 mod289(vec4 x) {
+      return x - floor(x * (1.0 / 289.0)) * 289.0;
+    }
+    vec4 permute(vec4 x) {
+      return mod289(((x*34.0)+1.0)*x);
+    }
+    vec4 taylorInvSqrt(vec4 r) {
+      return 1.79284291400159 - 0.85373472095314 * r;
+    }
+    vec2 fade(vec2 t) {
+      return t*t*t*(t*(t*6.0-15.0)+10.0);
+    }
+    float cnoise(vec2 P) {
+      vec4 Pi = floor(P.xyxy) + vec4(0.0, 0.0, 1.0, 1.0);
+      vec4 Pf = fract(P.xyxy) - vec4(0.0, 0.0, 1.0, 1.0);
+      Pi = mod289(Pi); // To avoid truncation effects in permutation
+      vec4 ix = Pi.xzxz;
+      vec4 iy = Pi.yyww;
+      vec4 fx = Pf.xzxz;
+      vec4 fy = Pf.yyww;
+    
+      vec4 i = permute(permute(ix) + iy);
+    
+      vec4 gx = fract(i * (1.0 / 41.0)) * 2.0 - 1.0 ;
+      vec4 gy = abs(gx) - 0.5 ;
+      vec4 tx = floor(gx + 0.5);
+      gx = gx - tx;
+    
+      vec2 g00 = vec2(gx.x,gy.x);
+      vec2 g10 = vec2(gx.y,gy.y);
+      vec2 g01 = vec2(gx.z,gy.z);
+      vec2 g11 = vec2(gx.w,gy.w);
+    
+      vec4 norm = taylorInvSqrt(vec4(dot(g00, g00), dot(g01, g01), dot(g10, g10), dot(g11, g11)));
+      g00 *= norm.x;  
+      g01 *= norm.y;  
+      g10 *= norm.z;  
+      g11 *= norm.w;  
+    
+      float n00 = dot(g00, vec2(fx.x, fy.x));
+      float n10 = dot(g10, vec2(fx.y, fy.y));
+      float n01 = dot(g01, vec2(fx.z, fy.z));
+      float n11 = dot(g11, vec2(fx.w, fy.w));
+    
+      vec2 fade_xy = fade(Pf.xy);
+      vec2 n_x = mix(vec2(n00, n01), vec2(n10, n11), fade_xy.x);
+      float n_xy = mix(n_x.x, n_x.y, fade_xy.y);
+      return 2.3 * n_xy;
+    }
+    
+    float pnoise(vec2 P, vec2 rep){
+      vec4 Pi = floor(P.xyxy) + vec4(0.0, 0.0, 1.0, 1.0);
+      vec4 Pf = fract(P.xyxy) - vec4(0.0, 0.0, 1.0, 1.0);
+      Pi = mod(Pi, rep.xyxy); // To create noise with explicit period
+      Pi = mod289(Pi);        // To avoid truncation effects in permutation
+      vec4 ix = Pi.xzxz;
+      vec4 iy = Pi.yyww;
+      vec4 fx = Pf.xzxz;
+      vec4 fy = Pf.yyww;
+    
+      vec4 i = permute(permute(ix) + iy);
+    
+      vec4 gx = fract(i * (1.0 / 41.0)) * 2.0 - 1.0 ;
+      vec4 gy = abs(gx) - 0.5 ;
+      vec4 tx = floor(gx + 0.5);
+      gx = gx - tx;
+    
+      vec2 g00 = vec2(gx.x,gy.x);
+      vec2 g10 = vec2(gx.y,gy.y);
+      vec2 g01 = vec2(gx.z,gy.z);
+      vec2 g11 = vec2(gx.w,gy.w);
+    
+      vec4 norm = taylorInvSqrt(vec4(dot(g00, g00), dot(g01, g01), dot(g10, g10), dot(g11, g11)));
+      g00 *= norm.x;  
+      g01 *= norm.y;  
+      g10 *= norm.z;  
+      g11 *= norm.w;  
+    
+      float n00 = dot(g00, vec2(fx.x, fy.x));
+      float n10 = dot(g10, vec2(fx.y, fy.y));
+      float n01 = dot(g01, vec2(fx.z, fy.z));
+      float n11 = dot(g11, vec2(fx.w, fy.w));
+    
+      vec2 fade_xy = fade(Pf.xy);
+      vec2 n_x = mix(vec2(n00, n01), vec2(n10, n11), fade_xy.x);
+      float n_xy = mix(n_x.x, n_x.y, fade_xy.y);
+      return 2.3 * n_xy;
+    }`,
 
-    `#define N ${shaderCPMatrix[0].length}`,
-    `#define M ${shaderCPMatrix.length}`,
-
-    "vec3 getColor(float u, float v) {",
-      "vec3 color;",
-      "for(int i = 0; i < N; i++) {",
-          "float polynomialU = coefficientsU[i] * pow(u, float(i)) * pow((1. - u), float(N - i - 1));",
-          "for(int j = 0; j < M; j++) {",
-            "float polynomialV = coefficientsU[j] * pow(v, float(j)) * pow((1. - v), float(M - j - 1));",
-            "color += (controlPoints[i * N + j] * polynomialU * polynomialV);",
-          "}",
-        "}",
-      "return color;",
-    "}",
+    `float random (in vec2 st, float seed) {
+        return fract(sin(dot(st.xy,
+                             vec2(12.9898,78.233) * seed))
+                     * 43758.5453123);
+    }
+   
+    float random (in vec2 st) {
+        return fract(sin(dot(st.xy,
+                             vec2(12.9898,78.233)))
+                     * 43758.5453123);
+    }
+    
+    float noise (in vec2 st, float seed) {
+        vec2 i = floor(st);
+        vec2 f = fract(st);
+    
+        // Four corners in 2D of a tile
+        float a = random(i, seed);
+        float b = random(i + vec2(1.0, 0.0), seed);
+        float c = random(i + vec2(0.0, 1.0), seed);
+        float d = random(i + vec2(1.0, 1.0), seed);
+    
+        vec2 u = f*f*(3.0-2.0*f);
+        
+        return mix(a, b, u.x) +
+                (c - a)* u.y * (1.0 - u.x) +
+                (d - b) * u.x * u.y;
+    }
+    
+    float noise (in vec2 _st) {
+        vec2 i = floor(_st);
+        vec2 f = fract(_st);
+    
+        // Four corners in 2D of a tile
+        float a = random(i);
+        float b = random(i + vec2(1.0, 0.0));
+        float c = random(i + vec2(0.0, 1.0));
+        float d = random(i + vec2(1.0, 1.0));
+    
+        vec2 u = f * f * (3.0 - 2.0 * f);
+    
+        return mix(a, b, u.x) +
+                (c - a)* u.y * (1.0 - u.x) +
+                (d - b) * u.x * u.y;
+    }
+    
+    float fbm ( in vec2 _st) {
+      float v = 0.0;
+      float a = 0.5;
+      vec2 shift = vec2(100.0);
+      // Rotate to reduce axial bias
+      mat2 rot = mat2(cos(0.5), sin(0.5),
+                      -sin(0.5), cos(0.50));
+      for (int i = 0; i < 5; ++i) {
+          v += a * noise(_st);
+          _st = rot * _st * 2.0 + shift;
+          a *= 0.5;
+      }
+      return v;
+    }
+    
+    float noise2 (in vec2 st, float seed) {
+        vec2 i = floor(st);
+        vec2 f = fract(st);
+    
+        // Four corners in 2D of a tile
+        float a = random(i, seed);
+        float b = random(i + vec2(1.0, 0.0), seed);
+        float c = random(i + vec2(0.0, 1.0), seed);
+        float d = random(i + vec2(1.0, 1.0), seed);
+    
+        vec2 u = f*f*(3.0-2.0*f);
+        
+        return mix(a, b, u.x) +
+                (c - a)* u.y * (1.0 - u.x) +
+                (d - b) * u.x * u.y;
+    }`,
 
     "void main() {",
-      "vec2 st = gl_FragCoord.xy/resolution.xy;",
-      "st.x *= resolution.x/resolution.y;",
+    " vec2 st = gl_FragCoord.xy;",
+    " vec2 pos = vec2(st * 0.0001 * (5. - sin(time)));",
+    " float n = noise(pos, sin(time) + 1.);",
+    " float b = noise(pos, sin(time - 100.) + 100.);",
 
-      "vec3 color = vec3(0.);",
-      "color = getColor(st.x, st.y);",
+    " float color = pnoise(st, vec2(n * b, sin(time)));",
 
-      "gl_FragColor = vec4(color,1.0);",
+    " float x = cnoise(vec2(st.x + time * 3., st.y * 0.06));",
+    " float y = cnoise(vec2(st.x * 0.01, (st.y + time* 1000.) * 0.003));",
+    " float z = cnoise(vec2((st.x + time * 10000.) * 0.003, (st.y + time * 1000.) * 0.01));",
+
+    `st /= 50.;
+    vec3 cloudColor = vec3(0.0);
+
+    vec2 q = vec2(0.);
+    q.x = fbm( st + 0.00*time);
+    q.y = fbm( st + vec2(1.0));
+
+    vec2 r = vec2(0.);
+    r.x = fbm( st + 1.0*q + vec2(1.7,9.2)+ 10.*time );
+    r.y = fbm( st + 1.0*q + vec2(8.3,2.8)+ 10.*time);
+
+    float f = fbm(vec2(st.x + 0.5 * z, (st.y * b) / 10000.));
+    float asd = fbm(vec2(st.x / 20. - time + b + z * z * x, st.y / 5. - time));
+    cloudColor = mix(cloudColor,
+      vec3(1,1,1),
+      clamp(length(r.x),0.0,1.0));`,
+
+    "float c = asd * asd * asd * asd * f * 50. * color * x * x;",
+    " gl_FragColor = vec4(c, c, c, 1.0);",
     "}"
 
   ].join("\n")
