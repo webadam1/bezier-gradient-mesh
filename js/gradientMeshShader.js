@@ -213,12 +213,13 @@ const gradientMeshShader = {
     r.y = fbm( st + 1.0*q + vec2(8.3,2.8)+ 10.*time);
 
     float f = fbm(vec2(st.x + 0.5 * z, (st.y * b) / 10000.));
-    float asd = fbm(vec2(st.x / 20. - time + b + z * z * x, st.y / 5. - time));
+    float asd = fbm(vec2(st.x / (20. + r.x) - (time + b + (z * z)), st.y / (5. + z) - time));
     cloudColor = mix(cloudColor,
       vec3(1,1,1),
       clamp(length(r.x),0.0,1.0));`,
 
-    "float c = asd * asd * asd * asd * f * 50. * color * x * x;",
+    "float c = asd * asd * asd * asd * f * 30. * color * color * x;",
+    "//c = asd * asd * asd * asd;",
     " gl_FragColor = vec4(c, c, c, 1.0);",
     "}"
 
