@@ -2,7 +2,7 @@ const gradientMeshShader = {
 
   uniforms: {
     "time":     { type: "f", value: 0.0 },
-    "resolution": { type: "v2", value: { x: 600, y: 600} },
+    "resolution": { type: "v2", value: { x: 1920, y: 1080} },
   },
 
   vertexShader: [
@@ -190,18 +190,23 @@ const gradientMeshShader = {
     }`,
 
     "void main() {",
-    " vec2 st = gl_FragCoord.xy;",
-    " vec2 pos = vec2(st * 0.0001 * (5. - sin(time)));",
+    // st scaled on a range of 0-1000
+    " vec2 st_o = gl_FragCoord.xy/resolution.xy*1000.;",
+    " vec2 pos = vec2(st_o * 0.0001 * (5. - sin(time)));",
     " float n = noise(pos, sin(time) + 1.);",
     " float b = noise(pos, sin(time - 100.) + 100.);",
 
-    " float color = pnoise(st, vec2(n * b, sin(time)));",
+    " float color = pnoise(st_o, vec2(n * b, sin(time)));",
 
-    " float x = cnoise(vec2(st.x + time * 3., st.y * 0.06));",
-    " float y = cnoise(vec2(st.x * 0.01, (st.y + time* 1000.) * 0.003));",
-    " float z = cnoise(vec2((st.x + time * 10000.) * 0.003, (st.y + time * 1000.) * 0.01));",
+    " float rand = fbm(vec2(time, st_o.y / 500.));",
+    " float cRand = rand * rand * rand;",
 
-    `st /= 50.;
+    " float x = cnoise(vec2(st_o.x, st_o.y * 0.3 + time * 3. + cRand * 1000.) * 0.3);",
+    " float y = cnoise(vec2(st_o.x * 0.01, (st_o.y + time * 1000.) * 0.003));",
+    " float z = cnoise(vec2((st_o.x + time * 1000.) * 0.003 * cRand, (st_o.y + time * 100.) * 0.01));",
+
+    // st scaled on a range of 0-20
+    `vec2 st = st_o / 50.;
     vec3 cloudColor = vec3(0.0);
 
     vec2 q = vec2(0.);
@@ -213,14 +218,20 @@ const gradientMeshShader = {
     r.y = fbm( st + 1.0*q + vec2(8.3,2.8)+ 10.*time);
 
     float f = fbm(vec2(st.x + 0.5 * z, (st.y * b) / 10000.));
-    float asd = fbm(vec2(st.x / (20. + r.x) - (time + b + (z * z)), st.y / (5. + z) - time));
+    float asd = fbm(vec2(st.x / (20. + r.x) - (time + b + (z * z)), st.y / (5. + z) - time * 2000.));
+    asd = fbm(vec2(st.x * (0.02 + r.x * 0.02) - (time * 3. + (z * z)) * 0.01, st.y * 0.1 - (time * 3. + (z * z)) * 0.5) - st.x * 0.2);
     cloudColor = mix(cloudColor,
       vec3(1,1,1),
       clamp(length(r.x),0.0,1.0));`,
 
-    "float c = asd * asd * asd * asd * f * 30. * color * color * x;",
-    "//c = asd * asd * asd * asd;",
-    " gl_FragColor = vec4(c, c, c, 1.0);",
+    "float c = asd * asd * asd * asd * asd * f * 30. * color * color * x * 2.;",
+    //add vignette
+    "float mask = max(2.1 - (st.x * 0.11), 0.);",
+    "mask *= max(st.x * 0.11 - 0.1, 0.);",
+    "mask *= max(st.y * 0.11 - 0.1, 0.);",
+    "mask *= max(2.1 - (st.y * 0.11), 0.);",
+    "c *= mask;",
+    " gl_FragColor = vec4(c, c, c + cRand * color * z, 1.0);",
     "}"
 
   ].join("\n")
