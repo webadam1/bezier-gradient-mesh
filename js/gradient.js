@@ -178,6 +178,7 @@ const renderPass = new THREE.RenderPass(scene, camera);
 composer.addPass(renderPass);
 
 const shaderPass = new THREE.ShaderPass(gradientMeshShader);
+console.log(shaderPass);
 composer.addPass(shaderPass);
 
 shaderPass.renderToScreen = true;
@@ -189,5 +190,7 @@ const animate = (t) => {
   shaderPass.uniforms.time.value = t / 3;
 	requestAnimationFrame(() => animate(t + 0.05));
 };
+console.log(camera.projectionMatrix);
+console.log(camera.matrixWorldInverse);
 
 animate(0);
