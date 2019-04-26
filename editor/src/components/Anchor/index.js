@@ -1,6 +1,6 @@
 import React from 'react';
 
-const SIZE = 10;
+const SIZE = 6;
 
 class Anchor extends React.Component {
   constructor(props) {
@@ -43,12 +43,22 @@ class Anchor extends React.Component {
   render() {
     const { x, y } = this.props;
     return (
-      <circle
-        r={SIZE} 
-        cx={x}
-        cy={y}
-        onMouseDown={this.onMouseDown}
-      />
+      <>
+        <circle
+          r={SIZE} 
+          cx={x}
+          cy={y}
+          onMouseDown={this.onMouseDown}
+          fill="#569be2"
+        />
+        <circle
+          r={SIZE - 2} 
+          cx={x}
+          cy={y}
+          onMouseDown={this.onMouseDown}
+          fill="#ffffff"
+        />
+      </>
     )
   }
 }
