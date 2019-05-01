@@ -89,31 +89,31 @@ function getBatch(matrix, i, j, attributeName) {
 }
 
 function getBatches(colorValues) {
-  const batches = [];
+  const patches = [];
   const columnLength = colorValues.length - 1;
   for (let i = 0; i < columnLength; i++) {
     const rowLength = colorValues[i].length - 1;
     for (let j = 0; j < rowLength; j++) {
-      const batch = {};
-      batch.x = [
+      const patch = {};
+      patch.x = [
         [i / columnLength, (i + 1) / columnLength, 0.5, 0.5],
         [i / columnLength, (i + 1) / columnLength, 0.5, 0.5],
         [0, 0, 0, 0],
         [0, 0, 0, 0],
       ];
-      batch.y = [
+      patch.y = [
         [j / rowLength, j / rowLength, 0, 0],
         [(j + 1) / rowLength, (j + 1) / rowLength, 0, 0],
         [0.5, 0.5, 0, 0],
         [0.5, 0.5, 0, 0],
       ];
-      batch.r = getBatch(colorValues, i, j, 'r');
-      batch.g = getBatch(colorValues, i, j, 'g');
-      batch.b = getBatch(colorValues, i, j, 'b');
-      batches.push(batch);
+      patch.r = getBatch(colorValues, i, j, 'r');
+      patch.g = getBatch(colorValues, i, j, 'g');
+      patch.b = getBatch(colorValues, i, j, 'b');
+      patches.push(patch);
     }
   }
-  return batches;
+  return patches;
 }
 
 function getBatchPoint(hermiteBatch, u, v) {
@@ -136,16 +136,16 @@ function drawHermiteSurface(t) {
 	}
   hermiteBatches = new THREE.Group();
 
-  allBatches.forEach((batch) => {
+  allBatches.forEach((patch) => {
     const surfaceElements = [];
     let vertexColors = [];
     for(let i = 0; i <= hermiteCurveDivisions; i++) {
       for(let j = 0; j <= hermiteCurveDivisions; j++) {
-        const x = getBatchPoint(batch.x, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const y = getBatchPoint(batch.y, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const r = getBatchPoint(batch.r, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const g = getBatchPoint(batch.g, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const b = getBatchPoint(batch.b, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
+        const x = getBatchPoint(patch.x, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
+        const y = getBatchPoint(patch.y, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
+        const r = getBatchPoint(patch.r, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
+        const g = getBatchPoint(patch.g, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
+        const b = getBatchPoint(patch.b, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
         const vertex = new THREE.Vector3(x, y, (r + g + b) / 3);
         surfaceElements.push(vertex);
         vertexColors.push(new THREE.Color(r, g, b));
