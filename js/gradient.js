@@ -17,23 +17,25 @@ const ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
 
 camera.position.z = 10;
-const hermiteCurveDivisions = 10;
+const hermiteCurveDivisions = 20;
 
-let hermiteZValues = [
-  [0, 0.5, 0, 0.1],
-  [0.2, 1, 0.3, 0.5],
-  [0.5, 0.5, 0.5, 0],
+let hermiteColors = [
+  [
+    { r: 1, b: 1, g: 1, a: 1 },
+    { r: 0.3, b: 0.2, g: 0, a: 1 },
+    { r: 0.5, b: 0.4, g: 0.2, a: 1 },
+  ],
+  [
+    { r: 0.4, b: 0.9, g: 0.6, a: 1 },
+    { r: 0.6, b: 0.9, g: 0.96, a: 1 },
+    { r: 0.4, b: 0.5, g: 0.6, a: 1 },
+  ],
+  [
+    { r: 0.02, b: 0.4, g: 0, a: 1 },
+    { r: 0.02, b: 0.3, g: 0, a: 1 },
+    { r: 0.02, b: 0.5, g: 1, a: 1 },
+  ],
 ];
-
-function getHermiteVertexColor({ x, y, z }) {
-  let r, g, b;
-  r = Math.ceil(((102 * x) + (42 * (1 - x))) / 2);
-  g = Math.ceil(((42 * x) + (193 * (1 - x))));
-  b = Math.ceil(((193 * x) + (193 * (1 - x))));
-  r += Math.ceil(Math.min(Math.max(z, 0), 1) * 255);
-  const color = `rgb(${r}, ${g}, ${b})`;
-  return new THREE.Color(color);
-}
 
 function transpose(matrix) {
   const w = matrix.length || 0;
@@ -69,11 +71,28 @@ const HM = [
 
 const HM_T = transpose(HM);
 
-function getBatches(zValues) {
+function getBatch(matrix, i, j, attributeName) {
+  if (attributeName) {
+    return ([
+      [matrix[i][j][attributeName], matrix[i + 1][j][attributeName], 0, 0],
+      [matrix[i][j + 1][attributeName], matrix[i + 1][j + 1][attributeName], 0, 0],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0],
+    ]);
+  }
+  return ([
+    [matrix[i][j], matrix[i + 1][j], 0, 0],
+    [matrix[i][j + 1], matrix[i + 1][j + 1], 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
+  ])
+}
+
+function getBatches(colorValues) {
   const batches = [];
-  const columnLength = zValues.length - 1;
+  const columnLength = colorValues.length - 1;
   for (let i = 0; i < columnLength; i++) {
-    const rowLength = zValues[i].length - 1;
+    const rowLength = colorValues[i].length - 1;
     for (let j = 0; j < rowLength; j++) {
       const batch = {};
       batch.x = [
@@ -88,12 +107,9 @@ function getBatches(zValues) {
         [0.5, 0.5, 0, 0],
         [0.5, 0.5, 0, 0],
       ];
-      batch.z = [
-        [zValues[i][j], zValues[i + 1][j], 0, 0],
-        [zValues[i][j + 1], zValues[i + 1][j + 1], 0, 0],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-      ];
+      batch.r = getBatch(colorValues, i, j, 'r');
+      batch.g = getBatch(colorValues, i, j, 'g');
+      batch.b = getBatch(colorValues, i, j, 'b');
       batches.push(batch);
     }
   }
@@ -107,7 +123,7 @@ function getBatchPoint(hermiteBatch, u, v) {
   return vec[0][0];
 }
 
-const allBatches = getBatches(hermiteZValues);
+const allBatches = getBatches(hermiteColors);
 let hermiteBatches = new THREE.Group();
 
 function drawHermiteSurface(t) {
@@ -116,6 +132,7 @@ function drawHermiteSurface(t) {
       hermiteBatches.remove(hermiteBatches.children[i]);
     }
 		scene.remove(hermiteBatches);
+    hermiteBatches = null;
 	}
   hermiteBatches = new THREE.Group();
 
@@ -126,14 +143,12 @@ function drawHermiteSurface(t) {
       for(let j = 0; j <= hermiteCurveDivisions; j++) {
         const x = getBatchPoint(batch.x, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
         const y = getBatchPoint(batch.y, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const z = getBatchPoint(batch.z, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const vertex = new THREE.Vector3(
-          x,
-          y,
-          z * ((Math.cos(t + x * 2) + 1) / 2)
-        );
+        const r = getBatchPoint(batch.r, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
+        const g = getBatchPoint(batch.g, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
+        const b = getBatchPoint(batch.b, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
+        const vertex = new THREE.Vector3(x, y, (r + g + b) / 3);
         surfaceElements.push(vertex);
-        vertexColors.push(getHermiteVertexColor(vertex));
+        vertexColors.push(new THREE.Color(r, g, b));
       }
     }
     let hermiteSurfaceVertices = surfaceElements;
@@ -162,7 +177,6 @@ function drawHermiteSurface(t) {
     hermiteSurfaceGeometry.computeVertexNormals();
     const hermiteSurfaceMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: THREE.VertexColors });
     const hermiteSurface = new THREE.Mesh(hermiteSurfaceGeometry, hermiteSurfaceMaterial);
-    hermiteSurface.material.side = THREE.DoubleSide;
     hermiteBatches.add(hermiteSurface);
   });
   scene.add(hermiteBatches);
