@@ -10,25 +10,28 @@ class MeshGradient extends React.Component {
     this.canvas = React.createRef();
     this.renderObjects = this.renderObjects.bind(this);
     this.ctrlPoints = [];
+    this.parsedTree = parseTree(props);
   }
 
   componentDidMount() {
-    this.ctrlPoints = [
-      new ControlPoint({
-        x: 100,
-        y: 100,
-        canvas: this.canvas,
-        color: "#F00",
-        trigger: this.renderObjects,
-      }),
-      new ControlPoint({
-        x: 200,
-        y: 300,
-        canvas: this.canvas,
-        color: "#0F0",
-        trigger: this.renderObjects,
-      }),
-    ];
+    this.parsedTree.forEach(row => {
+      row.forEach(patch => {
+        patch.forEach(stop => {
+          if (stop) {
+            this.ctrlPoints.push(
+              new ControlPoint({
+                x: stop.pos.x,
+                y: stop.pos.y,
+                canvas: this.canvas,
+                color: stop.color,
+                trigger: this.renderObjects,
+              })
+            );
+          }
+        })
+      })
+    });
+
     this.renderObjects();
   }
 
@@ -36,7 +39,7 @@ class MeshGradient extends React.Component {
     tree.rows.forEach(row => {
       row.patches.forEach(patch => {
         patch.stops.forEach(stop => {
-          
+          console.log(stop);
         });
       });
     });
@@ -56,7 +59,6 @@ class MeshGradient extends React.Component {
 
   render() {
     const { width, height } = this.props;
-    console.log('CANVAS')
     return (
       <canvas
         ref={this.canvas}

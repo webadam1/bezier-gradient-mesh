@@ -8,8 +8,8 @@ class ControlPoint {
     this.selected = false;
     this.move = false;
     this.radius = 9;
-    this.lineWidth = 2;
-    this.strokeStyle = "#000";
+    this.lineWidth = 1;
+    this.strokeStyle = "#111";
     this.fillStyle = color;
     this.render = trigger;
     this.boundingBox = new BoundingBox({
@@ -78,7 +78,8 @@ class ControlPoint {
   drawCircle() {
     const fullCircle = 2 * Math.PI;
     const ctx = this.canvas.current.getContext('2d');
-  
+    ctx.translate(-0.5, -0.5);
+
     ctx.beginPath();
     ctx.arc(this.x, this.y, this.radius, 0, fullCircle);
     ctx.fillStyle = this.fillStyle;
@@ -89,21 +90,35 @@ class ControlPoint {
     ctx.strokeStyle = this.strokeStyle;
     ctx.lineWidth = this.lineWidth;
     ctx.stroke();
+
+    ctx.translate(0.5, 0.5);
   }
 
   drawRect() {
-    const width = this.radius * 2;
-    const height = this.radius * 2;
+    const radius = this.radius * 1.2;
     const ctx = this.canvas.current.getContext('2d');
-  
+    ctx.translate(-0.5, -0.5);
+    
     ctx.beginPath();
     ctx.fillStyle = this.fillStyle;
-    ctx.fillRect(this.x - this.radius, this.y - this.radius, width, height);
+    ctx.moveTo(this.x, this.y - radius);
+    ctx.lineTo(this.x + radius, this.y);
+    ctx.lineTo(this.x, this.y + radius);
+    ctx.lineTo(this.x - radius, this.y);
+    ctx.closePath();
+    ctx.fill();
 
     ctx.beginPath();
     ctx.strokeStyle = this.strokeStyle;
     ctx.lineWidth = this.lineWidth;
-    ctx.strokeRect(this.x - this.radius, this.y - this.radius, width, height);
+    ctx.moveTo(this.x, this.y - radius);
+    ctx.lineTo(this.x + radius, this.y);
+    ctx.lineTo(this.x, this.y + radius);
+    ctx.lineTo(this.x - radius, this.y);
+    ctx.closePath();
+    ctx.stroke();
+
+    ctx.translate(0.5, 0.5);
   }
 }
 
