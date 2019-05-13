@@ -37,6 +37,7 @@ const parseRows = ({ rows, x, y }) => {
       let nextStop = { x, y };
       let lastStop = null;
       let lastParsed = null;
+      let nextParsed = null;
       for (let k = 0; k < stops.length; k++) {
         // console.log('--- STOPS ---')
         if (!result[i][j][k]) result[i][j][k] = [];
@@ -114,9 +115,14 @@ const parseRows = ({ rows, x, y }) => {
           if (k === 0) {
             result[i][j][0] = null;
             const refStop = {...result[i][j - 1][1].pos}
+            lastStop = {...refStop};
             nextStop = {
               x: refStop.x + parsed[2][0],
               y: refStop.y + parsed[2][1]
+            }
+            result[i][j - 1][1].handles[1] = {
+              x: lastStop.x + parsed[0][0],
+              y: lastStop.y + parsed[0][1],
             }
           } else if (parsed[2]) {
             nextStop = {
@@ -124,9 +130,37 @@ const parseRows = ({ rows, x, y }) => {
               y: nextStop.y + parsed[2][1]
             }
           }
+          if (stops[k + 1]) {
+            nextParsed = parsePath(stops[k + 1].props.path);
+          }
 
+          handles = [null, null, null, null];
+          if (k === 0) {
+            handles[2] = {
+              x: nextStop.x + nextParsed[0][0],
+              y: nextStop.y + nextParsed[0][1],
+            }
+            handles[3] = {
+              x: lastStop.x + parsed[1][0],
+              y: lastStop.y + parsed[1][1],
+            }
+            lastStop = {...nextStop};
+          } else if (k === 1) {
+            handles[0] = {
+              x: lastStop.x + parsed[1][0],
+              y: lastStop.y + parsed[1][1],
+            }
+            handles[3] = {
+              x: nextStop.x + nextParsed[0][0],
+              y: nextStop.y + nextParsed[0][1],
+            }
+          }
           if (k === 2) {
             result[i][j][k + 1] = null;
+            result[i][j - 1][k].handles[1] = {
+              x: nextStop.x + parsed[1][0],
+              y: nextStop.y + parsed[1][1],
+            };
           } else {
             result[i][j][k + 1] = {
               pos: {...nextStop},
@@ -143,10 +177,15 @@ const parseRows = ({ rows, x, y }) => {
           if (k === 0) {
             result[i][j][0] = null;
             const refStop = {...result[i - 1][j][2].pos}
+            lastStop = {...refStop};
 
             nextStop = {
               x: refStop.x + parsed[2][0],
               y: refStop.y + parsed[2][1]
+            }
+            result[i - 1][j][2].handles[2] = {
+              x: refStop.x + parsed[0][0],
+              y: refStop.y + parsed[0][1],
             }
           } else if (parsed[2]) {
             nextStop = {
@@ -154,9 +193,35 @@ const parseRows = ({ rows, x, y }) => {
               y: nextStop.y + parsed[2][1]
             }
           }
+          if (stops[k + 1]) {
+            nextParsed = parsePath(stops[k + 1].props.path);
+          }
 
-          if (k === 1) {
+          handles = [null, null, null, null];
+          if (k === 0) {
+            handles[0] = {
+              x: lastStop.x + parsed[1][0],
+              y: lastStop.y + parsed[1][1],
+            }
+            handles[3] = {
+              x: nextStop.x + nextParsed[0][0],
+              y: nextStop.y + nextParsed[0][1],
+            }
+            lastStop = {...nextStop};
+          } else if (k === 1) {
+            handles[0] = {
+              x: nextStop.x + nextParsed[0][0],
+              y: nextStop.y + nextParsed[0][1],
+            }
+            handles[1] = {
+              x: lastStop.x + parsed[1][0],
+              y: lastStop.y + parsed[1][1],
+            }
             result[i][j][1] = null;
+            result[i - 1][j][3].handles[2] = {
+              x: nextStop.x + nextParsed[1][0],
+              y: nextStop.y + nextParsed[1][1],
+            }
           }
 
           if (k === 0 || k === 1) {
@@ -174,16 +239,38 @@ const parseRows = ({ rows, x, y }) => {
           if (k === 0) {
             result[i][j][0] = null;
             const refStop = {...result[i - 1][j][2].pos}
+            nextParsed = parsePath(stops[k + 1].props.path);
 
             nextStop = {
               x: refStop.x + parsed[2][0],
               y: refStop.y + parsed[2][1]
             }
+
+            result[i - 1][j][2].handles[2] = {
+              x: refStop.x + parsed[0][0],
+              y: refStop.y + parsed[0][1],
+            }
+
+            result[i][j - 1][2].handles[1] = {
+              x: nextStop.x + nextParsed[1][0],
+              y: nextStop.y + nextParsed[1][1],
+            }
             
             result[i][j][k + 2] = {
               pos: {...nextStop},
               color: stops[k + 1] && stops[k + 1].props.stopColor,
-              handles,
+              handles: [
+                {
+                  x: refStop.x + parsed[1][0],
+                  y: refStop.y + parsed[1][1],
+                },
+                null,
+                null,
+                {
+                  x: nextStop.x + nextParsed[0][0],
+                  y: nextStop.y + nextParsed[0][1],
+                }
+              ],
             }
           }
 
