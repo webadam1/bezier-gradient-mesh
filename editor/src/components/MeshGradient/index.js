@@ -27,6 +27,20 @@ class MeshGradient extends React.Component {
                 trigger: this.renderObjects,
               })
             );
+            stop.handles.forEach(handle => {
+              if (handle) {
+                this.ctrlPoints.push(
+                  new ControlPoint({
+                    x: handle.x,
+                    y: handle.y,
+                    canvas: this.canvas,
+                    color: "#f5f5f5",
+                    trigger: this.renderObjects,
+                    size: 4
+                  })
+                );
+              }
+            })
           }
         })
       })

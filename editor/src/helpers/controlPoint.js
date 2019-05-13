@@ -1,13 +1,13 @@
 import BoundingBox from './boundingBox';
 
 class ControlPoint {
-  constructor({ x, y, canvas, color, trigger }) {
+  constructor({ x, y, canvas, color, trigger, size }) {
     this.x = x;
     this.y = y;
     this.canvas = canvas;
     this.selected = false;
     this.move = false;
-    this.radius = 9;
+    this.radius = size || 9;
     this.lineWidth = 1;
     this.strokeStyle = "#111";
     this.fillStyle = color;

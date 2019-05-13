@@ -1,4 +1,4 @@
-import { NAMES, SUPPORTED_PATH_COMMANDS } from './constants';
+import { NAMES } from './constants';
 
 const isComponent = name => item => item.type && item.type.name === name;
 
@@ -23,7 +23,6 @@ const parseRows = ({ rows, x, y }) => {
   rows = rows.filter(r => isRow(r));
   let result = [];
   // TODO
-  const handles = [null, null, null, null];
 
   for (let i = 0; i < rows.length; i++) {
     const patches = rows[i].props.children.filter(p => isPatch(p));
@@ -35,36 +34,77 @@ const parseRows = ({ rows, x, y }) => {
       // console.log('--- PATCHES ---')
       if (!result[i][j]) result[i][j] = [];
       
-      let lastStop = { x, y };
+      let nextStop = { x, y };
+      let lastStop = null;
+      let lastParsed = null;
       for (let k = 0; k < stops.length; k++) {
         // console.log('--- STOPS ---')
         if (!result[i][j][k]) result[i][j][k] = [];
         const color = stops[k].props.stopColor;
         const path = stops[k].props.path;
         const parsed = parsePath(path);
+        let handles = [null, null, null, null];
 
         // FIRST PATCH
-        if (i === 0 && j == 0) {
+        if (i === 0 && j === 0) {
           // FIRST STOP
           if (k === 0) {
+            handles[1] = {
+              x: x + parsed[0][0],
+              y: y + parsed[0][1],
+            };
             result[i][j][k] = {
               pos: { x, y },
               color,
               handles,
             }
           } else {
+            if (k === 1) {
+              handles[2] = {
+                x: nextStop.x + parsed[0][0],
+                y: nextStop.y + parsed[0][1],
+              };
+              handles[3] = {
+                x: lastStop.x + lastParsed[1][0],
+                y: lastStop.y + lastParsed[1][1],
+              };
+            } else if (k === 2) {
+              handles[3] = {
+                x: nextStop.x + parsed[0][0],
+                y: nextStop.y + + parsed[0][1],
+              };
+              handles[0] = {
+                x: lastStop.x + lastParsed[1][0],
+                y: lastStop.y + lastParsed[1][1],
+              };
+            } else {
+              handles[0] = {
+                x: nextStop.x + parsed[0][0],
+                y: nextStop.y + parsed[0][1],
+              };
+              handles[1] = {
+                x: lastStop.x + lastParsed[1][0],
+                y: lastStop.y + lastParsed[1][1],
+              };
+              result[i][j][0].handles[2] = {
+                x: nextStop.x + parsed[1][0],
+                y: nextStop.y + parsed[1][1],
+              }
+            }
             result[i][j][k] = {
-              pos: {...lastStop},
+              pos: {...nextStop},
               color,
               handles,
             }
           }
           if (parsed[2]) {
-            lastStop = {
-              x: lastStop.x + parsed[2][0],
-              y: lastStop.y + parsed[2][1]
+            lastStop = {...nextStop};
+            nextStop = {
+              x: nextStop.x + parsed[2][0],
+              y: nextStop.y + parsed[2][1]
             }
           }
+          lastParsed = parsed;
           continue;
         }
 
@@ -74,14 +114,14 @@ const parseRows = ({ rows, x, y }) => {
           if (k === 0) {
             result[i][j][0] = null;
             const refStop = {...result[i][j - 1][1].pos}
-            lastStop = {
+            nextStop = {
               x: refStop.x + parsed[2][0],
               y: refStop.y + parsed[2][1]
             }
           } else if (parsed[2]) {
-            lastStop = {
-              x: lastStop.x + parsed[2][0],
-              y: lastStop.y + parsed[2][1]
+            nextStop = {
+              x: nextStop.x + parsed[2][0],
+              y: nextStop.y + parsed[2][1]
             }
           }
 
@@ -89,7 +129,7 @@ const parseRows = ({ rows, x, y }) => {
             result[i][j][k + 1] = null;
           } else {
             result[i][j][k + 1] = {
-              pos: {...lastStop},
+              pos: {...nextStop},
               color: stops[k + 1].props.stopColor,
               handles,
             }
@@ -104,14 +144,14 @@ const parseRows = ({ rows, x, y }) => {
             result[i][j][0] = null;
             const refStop = {...result[i - 1][j][2].pos}
 
-            lastStop = {
+            nextStop = {
               x: refStop.x + parsed[2][0],
               y: refStop.y + parsed[2][1]
             }
           } else if (parsed[2]) {
-            lastStop = {
-              x: lastStop.x + parsed[2][0],
-              y: lastStop.y + parsed[2][1]
+            nextStop = {
+              x: nextStop.x + parsed[2][0],
+              y: nextStop.y + parsed[2][1]
             }
           }
 
@@ -121,7 +161,7 @@ const parseRows = ({ rows, x, y }) => {
 
           if (k === 0 || k === 1) {
             result[i][j][k + 2] = {
-              pos: {...lastStop},
+              pos: {...nextStop},
               color: stops[k + 1] && stops[k + 1].props.stopColor,
               handles,
             }
@@ -135,13 +175,13 @@ const parseRows = ({ rows, x, y }) => {
             result[i][j][0] = null;
             const refStop = {...result[i - 1][j][2].pos}
 
-            lastStop = {
+            nextStop = {
               x: refStop.x + parsed[2][0],
               y: refStop.y + parsed[2][1]
             }
             
             result[i][j][k + 2] = {
-              pos: {...lastStop},
+              pos: {...nextStop},
               color: stops[k + 1] && stops[k + 1].props.stopColor,
               handles,
             }
@@ -155,6 +195,8 @@ const parseRows = ({ rows, x, y }) => {
       }
     }
   }
+  
+  console.log(result);
 
   return result;
 }
