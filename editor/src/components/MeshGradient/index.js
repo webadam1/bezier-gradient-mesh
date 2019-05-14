@@ -1,6 +1,7 @@
 import React from 'react';
 import { parseTree } from '../../helpers';
 import ControlPoint from '../../helpers/controlPoint';
+import HermiteCurve from '../../helpers/hermiteCurve';
 
 class MeshGradient extends React.Component {
   constructor(props) {
@@ -10,6 +11,7 @@ class MeshGradient extends React.Component {
     this.canvas = React.createRef();
     this.renderObjects = this.renderObjects.bind(this);
     this.ctrlPoints = [];
+    this.curve = null;
     this.parsedTree = parseTree(props);
   }
 
@@ -24,39 +26,34 @@ class MeshGradient extends React.Component {
                 y: stop.pos.y,
                 canvas: this.canvas,
                 color: stop.color,
-                trigger: this.renderObjects,
-              })
-            );
-            stop.handles.forEach(handle => {
-              if (handle) {
-                this.ctrlPoints.push(
-                  new ControlPoint({
-                    x: handle.x,
-                    y: handle.y,
+                handles: stop.handles.map(handle => (
+                  handle ? new ControlPoint({
+                    x: handle.x - stop.pos.x,
+                    y: handle.y - stop.pos.y,
+                    parentPosition: {...stop.pos}, 
                     canvas: this.canvas,
                     color: "#f5f5f5",
                     trigger: this.renderObjects,
                     size: 4
-                  })
-                );
-              }
-            })
+                  }) : null
+                )),
+                trigger: this.renderObjects,
+              })
+            );
           }
         })
-      })
+      });
+    });
+
+    this.curve = new HermiteCurve({
+      p0: this.ctrlPoints[0],
+      m0: this.ctrlPoints[0].handles[1],
+      p1: this.ctrlPoints[1],
+      m1: this.ctrlPoints[1].handles[1],
+      canvas: this.canvas,
     });
 
     this.renderObjects();
-  }
-
-  renderTree(tree) {
-    tree.rows.forEach(row => {
-      row.patches.forEach(patch => {
-        patch.stops.forEach(stop => {
-          console.log(stop);
-        });
-      });
-    });
   }
 
   clearCanvas() {
@@ -68,7 +65,10 @@ class MeshGradient extends React.Component {
 
   renderObjects() {
     this.clearCanvas();
-    this.ctrlPoints.forEach(p => p.draw());
+    if (this.canvas.current) {
+      this.ctrlPoints.forEach(p => p.draw());
+      this.curve.draw();
+    }
   }
 
   render() {
@@ -78,7 +78,7 @@ class MeshGradient extends React.Component {
         ref={this.canvas}
         width={width}
         height={height}
-        style={{ border: '1px solid red' }}
+        style={{ border: '1px solid gray' }}
       />
     )
   }

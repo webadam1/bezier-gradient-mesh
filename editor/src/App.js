@@ -12,7 +12,7 @@ function App() {
       <MeshGradient x="100" y="100" width="800" height="600">
         <MeshRow>
           <MeshPatch>
-            <MeshStop path="c 25,-5 75, 5 100,0" stopColor="blue" />
+            <MeshStop path="c 25,-45 75, 5 100,0" stopColor="blue" />
             <MeshStop path="c 5, 25 -5, 75 0,100" stopColor="green" />
             <MeshStop path="c -25, 5 -75,-5 -100,0" stopColor="orange" />
             <MeshStop path="c -5,-25 5,-75" stopColor="red" /> {/* Last point not needed (closed path) */}
@@ -23,11 +23,11 @@ function App() {
             <MeshStop path="c -25, 5 -75,-5" stopColor="gold" /> {/* Last point not needed (closed path). */}
             {/* Last path (left side) taken from right side of previous path (with points reversed). */}
           </MeshPatch>
-          {/* <MeshPatch>
+          <MeshPatch>
             <MeshStop path="c 25,-5 75, 5 100,0" />
             <MeshStop path="c 5, 25 -5, 75 0,100" stopColor="cyan" />
             <MeshStop path="c -25, 5 -75,-5" stopColor="magenta" />
-          </MeshPatch> */}
+          </MeshPatch>
         </MeshRow>
         <MeshRow>
           <MeshPatch>
@@ -42,10 +42,26 @@ function App() {
             <MeshStop path="c -25, 5 -75,-5" stopColor="gray" /> {/* Last point not needed (closed path). */}
             {/* Last path (left side) taken from right side of previous path (with points reversed). */}
           </MeshPatch>
-          {/* <MeshPatch>
-            <MeshStop path="c 25, 25 -25, 75 0,100" />
-            <MeshStop path="c -25, 25 -75,-25" stopColor="crimson" />
-          </MeshPatch> */}
+          <MeshPatch>
+            <MeshStop path="c 5, 25 -5, 75 0,100" />
+            <MeshStop path="c -25, 5 -75,-5" stopColor="crimson" />
+          </MeshPatch>
+        </MeshRow>
+        <MeshRow>
+          <MeshPatch>
+            {/* First path (top side) taken from bottom path of patch above. */}
+            <MeshStop path="c 5, 25 -5, 75 0,100" />
+            <MeshStop path="c -25, 5 -75,-5 -100,0" stopColor="sienna" />
+            <MeshStop path="c -5,-25 5,-75" stopColor="blueviolet" />
+          </MeshPatch>
+          <MeshPatch>
+            <MeshStop path="c 5, 25 -5, 75 0,100" />
+            <MeshStop path="c -25, 5 -75,-5" stopColor="hotpink " />
+          </MeshPatch>
+          <MeshPatch>
+            <MeshStop path="c 5, 25 -5, 75 0,100" />
+            <MeshStop path="c -25, 5 -75,-5" stopColor="darkslategrey" />
+          </MeshPatch>
         </MeshRow>
       </MeshGradient>
     </div>

@@ -22,7 +22,6 @@ const parsePath = path => {
 const parseRows = ({ rows, x, y }) => {
   rows = rows.filter(r => isRow(r));
   let result = [];
-  // TODO
 
   for (let i = 0; i < rows.length; i++) {
     const patches = rows[i].props.children.filter(p => isPatch(p));
@@ -283,21 +282,15 @@ const parseRows = ({ rows, x, y }) => {
     }
   }
   
-  console.log(result);
-
   return result;
 }
 
 export const parseTree = (reactTree) => {
-  try {
-    const x = parseInt(reactTree.x) || 0;
-    const y = parseInt(reactTree.y) || 0;
-    return parseRows({ 
-      rows: reactTree.children,
-      x,
-      y,
-    });
-  } catch (err) {
-    console.error(err)
-  }
+  const x = parseInt(reactTree.x) || 0;
+  const y = parseInt(reactTree.y) || 0;
+  return parseRows({ 
+    rows: reactTree.children,
+    x,
+    y,
+  });
 }
