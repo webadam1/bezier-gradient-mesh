@@ -1,12 +1,11 @@
 import BoundingBox from './boundingBox';
 
 class ControlPoint {
-  constructor({ x, y, canvas, color, trigger, size, handles, parentPosition }) {
+  constructor({ x, y, canvas, color, trigger, size }) {
     this.x = x;
     this.y = y;
     this.canvas = canvas;
-    this.handles = handles;
-    this.parentPosition = parentPosition;
+    this.handles = [];
     this.selected = false;
     this.move = false;
     this.radius = size || 9;
@@ -19,6 +18,7 @@ class ControlPoint {
       y: y - this.radius,
       width: this.radius * 2,
       height: this.radius * 2,
+      canvas: canvas,
     });
     this.onClick = this.onClick.bind(this);
     this.onMove = this.onMove.bind(this);
@@ -39,9 +39,11 @@ class ControlPoint {
       return null;
     }
 
-    if (this.boundingBox.contains({ x, y })) {
+    if (
+      this.boundingBox.contains({ x, y }) ||
+      this.handles.some(h => h && h.boundingBox.contains({ x, y }))
+    ) {
       this.selected = true;
-      this.boundingBox.set({ x: x - this.radius, y: y - this.radius });
     } else {
       this.selected = false;
     }
@@ -53,7 +55,16 @@ class ControlPoint {
     const x = e.clientX - e.target.offsetTop;
     const y = e.clientY - e.target.offsetLeft;
 
-    if (this.selected && this.boundingBox.contains({ x, y })) {
+    if (
+      this.selected &&
+      this.boundingBox.contains({ x, y }) &&
+      (
+        this.handles !== []
+        && !this.handles.some(
+          h => h && h.boundingBox.contains({ x, y })
+        )
+      )
+    ) {
       this.move = true;
     }
   }
@@ -65,20 +76,31 @@ class ControlPoint {
     if (this.move) {
       this.x = x;
       this.y = y;
-      this.updateHandles({ x: this.x, y: this.y });
-      this.boundingBox.set({ x: x - this.radius, y: y - this.radius });
+      this.boundingBox.set({
+        x: x - this.radius,
+        y: y - this.radius,
+      });
+      this.handles.forEach(h => h && h.boundingBox.set({
+        x: x + h.x - h.radius,
+        y: y + h.y - h.radius,
+      }));
       this.render();
     }
   }
 
-  draw() {
+  draw({ x, y } = this) {
+    this.boundingBox.draw({ x, y });
     if (this.selected) {
-      this.drawRect();
       this.drawHandles();
+      this.drawRect({ x, y });
     } else {
-      this.drawHandles(); // TODO delete
-      this.drawCircle();
+      this.drawCircle({ x, y });
+      // this.drawHandles(); // debug
     }
+  }
+
+  attachHandles(handles) {
+    this.handles = handles;
   }
 
   drawHandles() {
@@ -87,20 +109,10 @@ class ControlPoint {
     }
   }
 
-  updateHandles({ x, y }) {
-    this.handles.forEach(handle => {
-      if (handle) {
-        handle.parentPosition = { x, y }
-      }
-    });
-  }
-
-  drawCircle() {
+  drawCircle({ x, y }) {
     const fullCircle = 2 * Math.PI;
     const ctx = this.canvas.current.getContext('2d');
     ctx.translate(-0.5, -0.5);
-    const x = this.parentPosition ? this.parentPosition.x + this.x : this.x;
-    const y = this.parentPosition ? this.parentPosition.y + this.y : this.y;
 
     ctx.beginPath();
     ctx.arc(x, y, this.radius, 0, fullCircle);
@@ -116,12 +128,10 @@ class ControlPoint {
     ctx.translate(0.5, 0.5);
   }
 
-  drawRect() {
+  drawRect({ x, y }) {
     const radius = this.radius * 1.2;
     const ctx = this.canvas.current.getContext('2d');
     ctx.translate(-0.5, -0.5);
-    const x = this.parentPosition ? this.parentPosition.x + this.x : this.x;
-    const y = this.parentPosition ? this.parentPosition.y + this.y : this.y;
     
     ctx.beginPath();
     ctx.fillStyle = this.fillStyle;

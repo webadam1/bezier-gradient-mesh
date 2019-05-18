@@ -1,6 +1,5 @@
 class HermiteCurve {
   constructor({ p0, m0, p1, m1, canvas }) {
-    console.log({ p0, m0, p1, m1, canvas });
     this.canvas = canvas;
     this.p0 = p0;
     this.m0 = m0;
@@ -23,14 +22,14 @@ class HermiteCurve {
         this.p0.x,
         this.m0.x,
         this.p1.x,
-        this.m1.x,
+        -this.m1.x,
       );
       const y = this.p0.y + HermiteCurve.interpolate(
         ratio,
         this.p0.y,
         this.m0.y,
         this.p1.y,
-        this.m1.y,
+        -this.m1.y,
       );
       ctx.lineTo(x, y);
     }

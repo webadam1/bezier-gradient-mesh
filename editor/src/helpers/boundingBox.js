@@ -1,9 +1,11 @@
 class BoundingBox {
-  constructor({ x, y, width, height }) {
+  constructor({ x, y, width, height, canvas, debug }) {
     this.x = x;
     this.y = y;
     this.width = width;
     this.height = height;
+    this.canvas = canvas;
+    this.debug = debug;
   }
 
   contains({ x, y }) {
@@ -18,8 +20,23 @@ class BoundingBox {
     this.y = y;
   }
 
-  debug() {
-    console.log({ x: this.x, y: this.y })
+  draw () {
+    if (!this.debug) {
+      return;
+    }
+
+    const ctx = this.canvas.current.getContext('2d');
+    ctx.translate(-0.5, -0.5);
+    
+    ctx.beginPath();
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "red";
+    ctx.strokeRect(this.x, this.y, this.width, this.height);
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'black';
+    ctx.stroke();
+
+    ctx.translate(.5, .5);
   }
 }
 
