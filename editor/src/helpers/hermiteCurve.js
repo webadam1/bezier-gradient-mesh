@@ -33,7 +33,7 @@ class HermiteCurve {
       );
       ctx.lineTo(x, y);
     }
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1;
     ctx.stroke();
   }
 

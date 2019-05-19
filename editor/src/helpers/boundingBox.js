@@ -26,7 +26,6 @@ class BoundingBox {
     }
 
     const ctx = this.canvas.current.getContext('2d');
-    ctx.translate(-0.5, -0.5);
     
     ctx.beginPath();
     ctx.lineWidth = 1;
@@ -35,8 +34,6 @@ class BoundingBox {
     ctx.lineWidth = 1;
     ctx.strokeStyle = 'black';
     ctx.stroke();
-
-    ctx.translate(.5, .5);
   }
 }
 

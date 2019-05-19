@@ -7,8 +7,9 @@ class ControlPoint {
     this.canvas = canvas;
     this.handles = [];
     this.selected = false;
+    this.hovered = false;
     this.move = false;
-    this.radius = size || 9;
+    this.radius = size || 7;
     this.lineWidth = 1;
     this.strokeStyle = "#111";
     this.fillStyle = color;
@@ -19,11 +20,13 @@ class ControlPoint {
       width: this.radius * 2,
       height: this.radius * 2,
       canvas: canvas,
+      // debug: true,
     });
     this.onClick = this.onClick.bind(this);
     this.onMove = this.onMove.bind(this);
     this.onMouseDown = this.onMouseDown.bind(this);
     this.drawHandles = this.drawHandles.bind(this);
+    this.drawHover = this.drawHover.bind(this);
 
     this.canvas.current.addEventListener('click', this.onClick);
     this.canvas.current.addEventListener('mousemove', this.onMove);
@@ -72,6 +75,13 @@ class ControlPoint {
   onMove(e) {
     const x = e.clientX - e.target.offsetTop;
     const y = e.clientY - e.target.offsetLeft;
+    let isHovered = this.boundingBox.contains({ x, y });
+
+    if (isHovered !== this.hovered) {
+      this.hovered = isHovered;
+      this.render();
+    }
+
 
     if (this.move) {
       this.x = x;
@@ -90,12 +100,14 @@ class ControlPoint {
 
   draw({ x, y } = this) {
     this.boundingBox.draw({ x, y });
+    if (this.hovered) {
+      this.drawHover({ x, y });
+    }
     if (this.selected) {
       this.drawHandles();
       this.drawRect({ x, y });
     } else {
       this.drawCircle({ x, y });
-      // this.drawHandles(); // debug
     }
   }
 
@@ -112,7 +124,6 @@ class ControlPoint {
   drawCircle({ x, y }) {
     const fullCircle = 2 * Math.PI;
     const ctx = this.canvas.current.getContext('2d');
-    ctx.translate(-0.5, -0.5);
 
     ctx.beginPath();
     ctx.arc(x, y, this.radius, 0, fullCircle);
@@ -124,14 +135,21 @@ class ControlPoint {
     ctx.strokeStyle = this.strokeStyle;
     ctx.lineWidth = this.lineWidth;
     ctx.stroke();
+  }
 
-    ctx.translate(0.5, 0.5);
+  drawHover({ x, y }) {
+    const fullCircle = 2 * Math.PI;
+    const ctx = this.canvas.current.getContext('2d');
+
+    ctx.beginPath();
+    ctx.arc(x, y, this.radius * 2, 0, fullCircle);
+    ctx.fillStyle = 'rgba(0, 0, 0, .15)';
+    ctx.fill();
   }
 
   drawRect({ x, y }) {
     const radius = this.radius * 1.2;
     const ctx = this.canvas.current.getContext('2d');
-    ctx.translate(-0.5, -0.5);
     
     ctx.beginPath();
     ctx.fillStyle = this.fillStyle;
@@ -151,8 +169,6 @@ class ControlPoint {
     ctx.lineTo(x - radius, y);
     ctx.closePath();
     ctx.stroke();
-
-    ctx.translate(0.5, 0.5);
   }
 }
 

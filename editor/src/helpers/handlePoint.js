@@ -12,6 +12,7 @@ export default class HandlePoint extends ControlPoint {
       width: this.radius * 2,
       height: this.radius * 2,
       canvas: canvas,
+      // debug: true,
     });
   }
 
@@ -25,7 +26,6 @@ export default class HandlePoint extends ControlPoint {
 
   drawLine() {
     const ctx = this.canvas.current.getContext('2d');
-    ctx.translate(-0.5, -0.5);
 
     ctx.beginPath();
     ctx.lineWidth = 1;
@@ -33,8 +33,6 @@ export default class HandlePoint extends ControlPoint {
     ctx.lineTo(this.parent.x + this.x, this.parent.y + this.y);
     ctx.stroke();
     ctx.closePath();
-
-    ctx.translate(.5, .5);
   }
 
   onMove(e) {

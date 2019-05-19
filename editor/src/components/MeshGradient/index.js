@@ -3,6 +3,7 @@ import { parseTree } from '../../helpers';
 import ControlPoint from '../../helpers/controlPoint';
 import HandlePoint from '../../helpers/handlePoint';
 import HermiteCurve from '../../helpers/hermiteCurve';
+import PatchRenderer from '../../helpers/patchRenderer';
 
 class MeshGradient extends React.Component {
   constructor(props) {
@@ -30,6 +31,7 @@ class MeshGradient extends React.Component {
 
         for (let k = 0; k < stops.length; k++) {
           const stop = stops[k];
+          refs[i][j][k] = null;
 
           if (stop) {
             const ctrlPnt = new ControlPoint({
@@ -133,75 +135,36 @@ class MeshGradient extends React.Component {
                 this.curves.push(curve);
               }
             }
-            console.log({ idx: [i, j, k], stop })
           }
         }
       }
     }
-
-    // console.log(refs);
-    // this.parsedTree.forEach(row => {
-    //   row.forEach(patch => {
-    //     patch.forEach(stop => {
-    //       if (stop) {
-    //         const ctrlPoint = new ControlPoint({
-    //           x: stop.pos.x,
-    //           y: stop.pos.y,
-    //           canvas: this.canvas,
-    //           color: stop.color,
-    //           trigger: this.renderObjects,
-    //         });
-    //         const handlePoints = stop.handles.map(handle => (
-    //           handle ? new HandlePoint({
-    //             x: handle.x - stop.pos.x,
-    //             y: handle.y - stop.pos.y,
-    //             canvas: this.canvas,
-    //             color: "#f5f5f5",
-    //             trigger: this.renderObjects,
-    //             size: 4,
-    //             parent: ctrlPoint,
-    //           }) : null
-    //         ));
-    //         ctrlPoint.attachHandles(handlePoints);
-
-    //         this.ctrlPoints.push(ctrlPoint);
-    //       }
-    //     })
-    //   });
-    // });
-
-    // this.curves = [
-    //   new HermiteCurve({
-    //     p0: this.ctrlPoints[0],
-    //     m0: this.ctrlPoints[0].handles[1],
-    //     p1: this.ctrlPoints[1],
-    //     m1: this.ctrlPoints[1].handles[3],
-    //     canvas: this.canvas,
-    //   }),
-    //   new HermiteCurve({
-    //     p0: this.ctrlPoints[1],
-    //     m0: this.ctrlPoints[1].handles[2],
-    //     p1: this.ctrlPoints[2],
-    //     m1: this.ctrlPoints[2].handles[0],
-    //     canvas: this.canvas,
-    //   })
-    // ];
+    
+    this.patch = new PatchRenderer({
+      patch: refs[0][0],
+      canvas: this.canvas,
+    });
 
     this.renderObjects();
   }
 
   clearCanvas() {
-    if (this.canvas.current) {
-      const ctx = this.canvas.current.getContext('2d');
-      ctx.clearRect(0, 0, this.props.width, this.props.height);
-    }
+    const ctx = this.canvas.current.getContext('2d');
+    ctx.clearRect(0, 0, this.props.width, this.props.height);
   }
 
   renderObjects() {
-    this.clearCanvas();
     if (this.canvas.current) {
+      const ctx = this.canvas.current.getContext('2d');
+      ctx.translate(-0.5, -0.5);
+      
+      this.clearCanvas();
       this.curves.forEach(c => c.draw());
       this.ctrlPoints.forEach(p => p.draw());
+      // TEST
+      this.patch.draw();
+
+      ctx.translate(.5, .5);
     }
   }
 
