@@ -17,7 +17,7 @@ const ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
 
 camera.position.z = 10;
-const hermiteCurveDivisions = 20;
+const hermiteCurveDivisions = 15;
 
 let hermiteColors = [
   [
@@ -71,7 +71,7 @@ const HM = [
 
 const HM_T = transpose(HM);
 
-function getBatch(matrix, i, j, attributeName) {
+function getPatch(matrix, i, j, attributeName) {
   if (attributeName) {
     return ([
       [matrix[i][j][attributeName], matrix[i + 1][j][attributeName], 0, 0],
@@ -88,7 +88,7 @@ function getBatch(matrix, i, j, attributeName) {
   ])
 }
 
-function getBatches(colorValues) {
+function getPatches(colorValues) {
   const patches = [];
   const columnLength = colorValues.length - 1;
   for (let i = 0; i < columnLength; i++) {
@@ -107,45 +107,45 @@ function getBatches(colorValues) {
         [0.5, 0.5, 0, 0],
         [0.5, 0.5, 0, 0],
       ];
-      patch.r = getBatch(colorValues, i, j, 'r');
-      patch.g = getBatch(colorValues, i, j, 'g');
-      patch.b = getBatch(colorValues, i, j, 'b');
+      patch.r = getPatch(colorValues, i, j, 'r');
+      patch.g = getPatch(colorValues, i, j, 'g');
+      patch.b = getPatch(colorValues, i, j, 'b');
       patches.push(patch);
     }
   }
   return patches;
 }
 
-function getBatchPoint(hermiteBatch, u, v) {
+function getPatchPoint(hermitePatch, u, v) {
   const Uvec = [[u ** 3], [u ** 2], [u], [1]];
   const Vvec = [[v ** 3], [v ** 2], [v], [1]];
-  const vec = multiplyMatrices(multiplyMatrices(multiplyMatrices(multiplyMatrices(transpose(Uvec), HM), hermiteBatch), HM_T), Vvec);
+  const vec = multiplyMatrices(multiplyMatrices(multiplyMatrices(multiplyMatrices(transpose(Uvec), HM), hermitePatch), HM_T), Vvec);
   return vec[0][0];
 }
 
-const allBatches = getBatches(hermiteColors);
-let hermiteBatches = new THREE.Group();
+const allPatches = getPatches(hermiteColors);
+let hermitePatches = new THREE.Group();
 
 function drawHermiteSurface(t) {
-	if (hermiteBatches) {
-    for (let i = hermiteBatches.children.length - 1; i >= 0; i--) {
-      hermiteBatches.remove(hermiteBatches.children[i]);
+	if (hermitePatches) {
+    for (let i = hermitePatches.children.length - 1; i >= 0; i--) {
+      hermitePatches.remove(hermitePatches.children[i]);
     }
-		scene.remove(hermiteBatches);
-    hermiteBatches = null;
+		scene.remove(hermitePatches);
+    hermitePatches = null;
 	}
-  hermiteBatches = new THREE.Group();
+  hermitePatches = new THREE.Group();
 
-  allBatches.forEach((patch) => {
+  allPatches.forEach((patch) => {
     const surfaceElements = [];
     let vertexColors = [];
     for(let i = 0; i <= hermiteCurveDivisions; i++) {
       for(let j = 0; j <= hermiteCurveDivisions; j++) {
-        const x = getBatchPoint(patch.x, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const y = getBatchPoint(patch.y, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const r = getBatchPoint(patch.r, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const g = getBatchPoint(patch.g, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const b = getBatchPoint(patch.b, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
+        const x = getPatchPoint(patch.x, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
+        const y = getPatchPoint(patch.y, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
+        const r = getPatchPoint(patch.r, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
+        const g = getPatchPoint(patch.g, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
+        const b = getPatchPoint(patch.b, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
         const vertex = new THREE.Vector3(x, y, (r + g + b) / 3);
         surfaceElements.push(vertex);
         vertexColors.push(new THREE.Color(r, g, b));
@@ -177,15 +177,15 @@ function drawHermiteSurface(t) {
     hermiteSurfaceGeometry.computeVertexNormals();
     const hermiteSurfaceMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: THREE.VertexColors });
     const hermiteSurface = new THREE.Mesh(hermiteSurfaceGeometry, hermiteSurfaceMaterial);
-    hermiteBatches.add(hermiteSurface);
+    hermitePatches.add(hermiteSurface);
   });
-  scene.add(hermiteBatches);
+  scene.add(hermitePatches);
 }
 
 const animate = (t) => {
   drawHermiteSurface(t);
 	renderer.render(scene, camera);
-	requestAnimationFrame(() => animate(t + 0.05));
+	// requestAnimationFrame(() => animate(t + 0.05));
 };
 
 animate(0);
