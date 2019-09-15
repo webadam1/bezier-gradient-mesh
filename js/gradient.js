@@ -17,7 +17,7 @@ const ambientLight = new THREE.AmbientLight(0xffffff);
 scene.add(ambientLight);
 
 camera.position.z = 10;
-const hermiteCurveDivisions = 15;
+const patchDivCount = 20;
 
 let hermiteColors = [
   [
@@ -52,14 +52,22 @@ function transpose(matrix) {
   return t;
 }
 
-function multiplyMatrices(A, B) {
-  const result = new Array(A.length).fill(0).map(() => new Array(B[0].length).fill(0));
-
-  return result.map((row, i) => {
-    return row.map((val, j) => {
-      return A[i].reduce((sum, elm, k) => sum + (elm*B[k][j]) ,0)
-    })
-  })
+function multiply(a, b) {
+  const aNumRows = a.length;
+  const aNumCols = a[0].length;
+  const bNumRows = b.length;
+  const bNumCols = b[0].length,
+    m = new Array(aNumRows);  // initialize array of rows
+  for (let r = 0; r < aNumRows; ++r) {
+    m[r] = new Array(bNumCols); // initialize the current row
+    for (let c = 0; c < bNumCols; ++c) {
+      m[r][c] = 0;             // initialize the current cell
+      for (let i = 0; i < aNumCols; ++i) {
+        m[r][c] += a[r][i] * b[i][c];
+      }
+    }
+  }
+  return m;
 }
 
 const HM = [
@@ -119,72 +127,186 @@ function getPatches(colorValues) {
 function getPatchPoint(hermitePatch, u, v) {
   const Uvec = [[u ** 3], [u ** 2], [u], [1]];
   const Vvec = [[v ** 3], [v ** 2], [v], [1]];
-  const vec = multiplyMatrices(multiplyMatrices(multiplyMatrices(multiplyMatrices(transpose(Uvec), HM), hermitePatch), HM_T), Vvec);
+  const vec = multiply(multiply(multiply(multiply(transpose(Uvec), HM), hermitePatch), HM_T), Vvec);
   return vec[0][0];
 }
 
 const allPatches = getPatches(hermiteColors);
 let hermitePatches = new THREE.Group();
+let positionBufferAttribute;
+let colorBufferAttribute;
+const gradientMeshGeometry = new THREE.BufferGeometry();
+const patchVertexCount = (patchDivCount + 1) * (patchDivCount + 1);
+const patchFaceCount = patchDivCount * patchDivCount * 2;
+const vertexCount = allPatches.length * patchFaceCount * 3;
+console.log({ patchVertexCount, patchFaceCount, vertexCount });
+let gradientMesh;
+const vertexArray = new Array(vertexCount * 3);
+const colorArray = new Array(vertexCount * 3);
+const surfaceElements = new Array(patchVertexCount * 3);
+const vertexColors = new Array(patchVertexCount * 3);
+let vertices;
+let colors;
 
-function drawHermiteSurface(t) {
-	if (hermitePatches) {
-    for (let i = hermitePatches.children.length - 1; i >= 0; i--) {
-      hermitePatches.remove(hermitePatches.children[i]);
-    }
-		scene.remove(hermitePatches);
-    hermitePatches = null;
-	}
-  hermitePatches = new THREE.Group();
-
-  allPatches.forEach((patch) => {
-    const surfaceElements = [];
-    let vertexColors = [];
-    for(let i = 0; i <= hermiteCurveDivisions; i++) {
-      for(let j = 0; j <= hermiteCurveDivisions; j++) {
-        const x = getPatchPoint(patch.x, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const y = getPatchPoint(patch.y, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const r = getPatchPoint(patch.r, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const g = getPatchPoint(patch.g, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const b = getPatchPoint(patch.b, i / hermiteCurveDivisions, j / hermiteCurveDivisions);
-        const vertex = new THREE.Vector3(x, y, (r + g + b) / 3);
-        surfaceElements.push(vertex);
-        vertexColors.push(new THREE.Color(r, g, b));
+function initializeHermiteSurface() {
+  allPatches.forEach((patch, patchIndex) => {
+    for(let i = 0; i <= patchDivCount; i++) {
+      for(let j = 0; j <= patchDivCount; j++) {
+        const x = getPatchPoint(patch.x, i / patchDivCount, j / patchDivCount);
+        const y = getPatchPoint(patch.y, i / patchDivCount, j / patchDivCount);
+        const r = getPatchPoint(patch.r, i / patchDivCount, j / patchDivCount);
+        const g = getPatchPoint(patch.g, i / patchDivCount, j / patchDivCount);
+        const b = getPatchPoint(patch.b, i / patchDivCount, j / patchDivCount);
+        const z = (r + b + g) / 3;
+        const baseIndex = ((i * (patchDivCount + 1)) + j) * 3;
+        surfaceElements[baseIndex] = x;
+        surfaceElements[baseIndex + 1] = y;
+        surfaceElements[baseIndex + 2] = z;
+        vertexColors[baseIndex] = r;
+        vertexColors[baseIndex + 1] = g;
+        vertexColors[baseIndex + 2] = b;
       }
     }
-    let hermiteSurfaceVertices = surfaceElements;
-    const hermiteSurfaceFaces = [];
-    // creating faces from vertices
-    let v1, v2, v3, v4, face1, face2;  // vertex indices in hermiteSurfaceVertices array
-    for (let i = 0; i < hermiteCurveDivisions; i++) {
-      for (let j = 0; j < hermiteCurveDivisions; j++) {
-        v1 = i * (hermiteCurveDivisions + 1) + j;
-        v2 = (i + 1) * (hermiteCurveDivisions + 1) + j;
-        v3 = i * (hermiteCurveDivisions + 1) + (j + 1);
-        v4 = (i + 1) * (hermiteCurveDivisions + 1) + (j + 1);
+    for (let i = 0; i < patchDivCount; i++) {
+      for (let j = 0; j < patchDivCount; j++) {
+        const baseIndex = ((patchIndex * (patchFaceCount / 2)) + (i * patchDivCount) + j) * 18;
+        /*
+        v1----v3
+        |   / |
+        | /   |
+        v2---v4
+        */
+        const v1_index = (i * (patchDivCount + 1) + j) * 3;
+        vertexArray[baseIndex] = surfaceElements[v1_index];
+        vertexArray[baseIndex + 1] = surfaceElements[v1_index + 1];
+        vertexArray[baseIndex + 2] = surfaceElements[v1_index + 2];
 
-        face1 = new THREE.Face3(v1, v2, v3);
-        face1.vertexColors = [vertexColors[v1], vertexColors[v2], vertexColors[v3]];
-        face2 = new THREE.Face3(v2, v4, v3);
-        face2.vertexColors = [vertexColors[v2], vertexColors[v4], vertexColors[v3]];
-        hermiteSurfaceFaces.push( face1 );
-        hermiteSurfaceFaces.push( face2 );
+        colorArray[baseIndex] = vertexColors[v1_index];
+        colorArray[baseIndex + 1] = vertexColors[v1_index + 1];
+        colorArray[baseIndex + 2] = vertexColors[v1_index + 2];
+
+        const v2_index = ((i + 1) * (patchDivCount + 1) + j) * 3;
+        vertexArray[baseIndex + 3] = vertexArray[baseIndex + 9] = surfaceElements[v2_index];
+        vertexArray[baseIndex + 4] = vertexArray[baseIndex + 10] = surfaceElements[v2_index + 1];
+        vertexArray[baseIndex + 5] = vertexArray[baseIndex + 11] = surfaceElements[v2_index + 2];
+
+        colorArray[baseIndex + 3] = colorArray[baseIndex + 9] = vertexColors[v2_index];
+        colorArray[baseIndex + 4] = colorArray[baseIndex + 10] = vertexColors[v2_index + 1];
+        colorArray[baseIndex + 5] = colorArray[baseIndex + 11] = vertexColors[v2_index + 2];
+
+        const v3_index = (i * (patchDivCount + 1) + (j + 1)) * 3;
+        vertexArray[baseIndex + 6] = vertexArray[baseIndex + 12] = surfaceElements[v3_index];
+        vertexArray[baseIndex + 7] = vertexArray[baseIndex + 13] = surfaceElements[v3_index + 1];
+        vertexArray[baseIndex + 8] = vertexArray[baseIndex + 14] = surfaceElements[v3_index + 2];
+
+        colorArray[baseIndex + 6] = colorArray[baseIndex + 12] = vertexColors[v3_index];
+        colorArray[baseIndex + 7] = colorArray[baseIndex + 13] = vertexColors[v3_index + 1];
+        colorArray[baseIndex + 8] = colorArray[baseIndex + 14] = vertexColors[v3_index + 2];
+
+        const v4_index = ((i + 1) * (patchDivCount + 1) + (j + 1)) * 3;
+        vertexArray[baseIndex + 15] = surfaceElements[v4_index];
+        vertexArray[baseIndex + 16] = surfaceElements[v4_index + 1];
+        vertexArray[baseIndex + 17] = surfaceElements[v4_index + 2];
+
+        colorArray[baseIndex + 15] = vertexColors[v4_index];
+        colorArray[baseIndex + 16] = vertexColors[v4_index + 1];
+        colorArray[baseIndex + 17] = vertexColors[v4_index + 2];
       }
     }
-    const hermiteSurfaceGeometry = new THREE.Geometry();
-    hermiteSurfaceGeometry.vertices = hermiteSurfaceVertices;
-    hermiteSurfaceGeometry.faces = hermiteSurfaceFaces;
-    hermiteSurfaceGeometry.computeFaceNormals();
-    hermiteSurfaceGeometry.computeVertexNormals();
-    const hermiteSurfaceMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff, vertexColors: THREE.VertexColors });
-    const hermiteSurface = new THREE.Mesh(hermiteSurfaceGeometry, hermiteSurfaceMaterial);
-    hermitePatches.add(hermiteSurface);
   });
-  scene.add(hermitePatches);
+  vertices = new Float32Array(vertexArray);
+  colors = new Float32Array(colorArray);
+  positionBufferAttribute = new THREE.BufferAttribute(vertices, 3);
+  positionBufferAttribute.setDynamic(true);
+  gradientMeshGeometry.addAttribute('position', positionBufferAttribute);
+
+  colorBufferAttribute = new THREE.BufferAttribute(colors, 3);
+  colorBufferAttribute.setDynamic(true);
+  gradientMeshGeometry.addAttribute('color', colorBufferAttribute);
+  const material = new THREE.MeshBasicMaterial( { color: 0xffffff, vertexColors: THREE.VertexColors, side: THREE.DoubleSide } );
+  gradientMesh = new THREE.Mesh( gradientMeshGeometry, material );
+  scene.add(gradientMesh);
+  console.log(gradientMesh);
+  gradientMesh.geometry.attributes.position.needsUpdate = true;
+  gradientMesh.geometry.attributes.color.needsUpdate = true;
 }
 
+function animateHermiteSurface(t) {
+  allPatches.forEach((patch, patchIndex) => {
+    for(let i = 0; i <= patchDivCount; i++) {
+      for(let j = 0; j <= patchDivCount; j++) {
+        const x = getPatchPoint(patch.x, i / patchDivCount, j / patchDivCount);
+        const y = getPatchPoint(patch.y, i / patchDivCount, j / patchDivCount);
+        const r = getPatchPoint(patch.r, i / patchDivCount, j / patchDivCount);
+        const g = getPatchPoint(patch.g, i / patchDivCount, j / patchDivCount);
+        const b = getPatchPoint(patch.b, i / patchDivCount, j / patchDivCount);
+        const z = (r + b + g) / 3;
+        const baseIndex = ((i * (patchDivCount + 1)) + j) * 3;
+        surfaceElements[baseIndex] = x;
+        surfaceElements[baseIndex + 1] = y;
+        surfaceElements[baseIndex + 2] = z;
+        vertexColors[baseIndex] = r;
+        vertexColors[baseIndex + 1] = g;
+        vertexColors[baseIndex + 2] = b;
+      }
+    }
+    for (let i = 0; i < patchDivCount; i++) {
+      for (let j = 0; j < patchDivCount; j++) {
+        const baseIndex = ((patchIndex * (patchFaceCount / 2)) + (i * patchDivCount) + j) * 18;
+        /*
+        v1----v3
+        |   / |
+        | /   |
+        v2---v4
+        */
+        const v1_index = (i * (patchDivCount + 1) + j) * 3;
+        vertices[baseIndex] = surfaceElements[v1_index];
+        vertices[baseIndex + 1] = surfaceElements[v1_index + 1];
+        vertices[baseIndex + 2] = surfaceElements[v1_index + 2];
+
+        colors[baseIndex] = vertexColors[v1_index];
+        colors[baseIndex + 1] = vertexColors[v1_index + 1];
+        colors[baseIndex + 2] = vertexColors[v1_index + 2];
+
+        const v2_index = ((i + 1) * (patchDivCount + 1) + j) * 3;
+        vertices[baseIndex + 3] = vertices[baseIndex + 9] = surfaceElements[v2_index];
+        vertices[baseIndex + 4] = vertices[baseIndex + 10] = surfaceElements[v2_index + 1];
+        vertices[baseIndex + 5] = vertices[baseIndex + 11] = surfaceElements[v2_index + 2];
+
+        colors[baseIndex + 3] = colors[baseIndex + 9] = vertexColors[v2_index];
+        colors[baseIndex + 4] = colors[baseIndex + 10] = vertexColors[v2_index + 1];
+        colors[baseIndex + 5] = colors[baseIndex + 11] = vertexColors[v2_index + 2];
+
+        const v3_index = (i * (patchDivCount + 1) + (j + 1)) * 3;
+        vertices[baseIndex + 6] = vertices[baseIndex + 12] = surfaceElements[v3_index];
+        vertices[baseIndex + 7] = vertices[baseIndex + 13] = surfaceElements[v3_index + 1];
+        vertices[baseIndex + 8] = vertices[baseIndex + 14] = surfaceElements[v3_index + 2];
+
+        colors[baseIndex + 6] = colors[baseIndex + 12] = vertexColors[v3_index];
+        colors[baseIndex + 7] = colors[baseIndex + 13] = vertexColors[v3_index + 1];
+        colors[baseIndex + 8] = colors[baseIndex + 14] = vertexColors[v3_index + 2];
+
+        const v4_index = ((i + 1) * (patchDivCount + 1) + (j + 1)) * 3;
+        vertices[baseIndex + 15] = surfaceElements[v4_index];
+        vertices[baseIndex + 16] = surfaceElements[v4_index + 1];
+        vertices[baseIndex + 17] = surfaceElements[v4_index + 2];
+
+        colors[baseIndex + 15] = vertexColors[v4_index];
+        colors[baseIndex + 16] = vertexColors[v4_index + 1];
+        colors[baseIndex + 17] = vertexColors[v4_index + 2];
+      }
+    }
+  });
+  gradientMesh.geometry.attributes.position.setArray(vertices);
+  gradientMesh.geometry.attributes.color.setArray(colors);
+  gradientMesh.geometry.attributes.position.needsUpdate = true;
+  gradientMesh.geometry.attributes.color.needsUpdate = true;
+}
+initializeHermiteSurface();
+
 const animate = (t) => {
-  drawHermiteSurface(t);
-	renderer.render(scene, camera);
+  animateHermiteSurface(t);
+  renderer.render(scene, camera);
 	// requestAnimationFrame(() => animate(t + 0.05));
 };
 
