@@ -24,6 +24,7 @@ class Editor {
     this.initControlPoints();
     this.initEventListeners();
     this.boundingRect = container.getBoundingClientRect();
+    this.colorEditor = new ColorEditor(document.body, this.setColor.bind(this));
   }
 
   initControlPoints() {
@@ -38,7 +39,7 @@ class Editor {
           y: j / this.divisionCount,
           r: i / this.divisionCount,
           g: j / this.divisionCount,
-          b: (i + j) / 2 / this.divisionCount,
+          b: j / this.divisionCount,
           id: `control-point-${cpIdCounter++}`,
         };
         const cpObject = new ControlPoint(cp, this);
@@ -50,9 +51,9 @@ class Editor {
   }
 
   initEventListeners() {
+    this.container.addEventListener('click', this.onClick.bind(this));
     this.container.addEventListener('mousemove', this.onMouseMove.bind(this));
     this.container.addEventListener('mouseup', this.onMouseUp.bind(this));
-    this.container.addEventListener('mousedown', this.onMouseDown.bind(this));
     this.container.addEventListener('touchend', this.onTouchEnd.bind(this));
     window.addEventListener('resize', debounce(() => {
       this.boundingRect = this.container.getBoundingClientRect();
@@ -68,12 +69,21 @@ class Editor {
     }
   }
 
-  onMouseDown(e) {
+  onClick(e) {
+    if (e.target === this.container) {
+      if (this.editing) {
+        this.editing = false;
+        this.container.classList.remove('editing');
+      } else {
+        this.editing = true;
+        this.container.classList.add('editing');
+      }
+    }
   }
 
   onMouseUp(e) {
     this.currentlyMovingCp = null;
-    if (!e.target.classList.contains('control-point')) {
+    if (!e.target.classList.contains('control-point') && this.selectedCp) {
       this.selectedCp.element.classList.remove('active');
       this.selectedCp = null;
     }
@@ -91,6 +101,7 @@ class Editor {
     }
     this.selectedCp = cp;
     this.selectedCp.element.classList.add('active');
+    this.colorEditor.setColor(cp);
     console.log('SET CP_UNDER_EDITING', this.currentlyMovingCp.id);
   }
 

@@ -1,9 +1,9 @@
 const scene = new THREE.Scene();
 const camera = new THREE.OrthographicCamera( 0, 1, 0, 1, 1, 1000 );
 const camera2 = new THREE.PerspectiveCamera( 50, 1, 1, 1000 );
-camera2.position.z = 3;
+camera2.position.z = 1.5;
 camera2.position.x = 0.5;
-camera2.position.y = -2;
+camera2.position.y = -1;
 camera2.rotation.x = 0.8;
 scene.add(camera2);
 
@@ -23,7 +23,6 @@ const patchDivCount = 20;
 
 const initialDivisionCount = 3;
 const editor = new Editor(initialDivisionCount, parentElement);
-const colorEditor = new ColorEditor(document.body, editor.setColor.bind(editor));
 
 function transpose(matrix) {
   const w = matrix.length || 0;
@@ -136,7 +135,7 @@ function fillBufferAttributeByPatches(patches, positionAttr, colorAttr) {
         const r = getPatchPoint(patch.r, i / patchDivCount, j / patchDivCount);
         const g = getPatchPoint(patch.g, i / patchDivCount, j / patchDivCount);
         const b = getPatchPoint(patch.b, i / patchDivCount, j / patchDivCount);
-        const z = 0;
+        const z = (r + g + b) / 6;
         const baseIndex = ((i * (patchDivCount + 1)) + j) * 3;
         surfaceElements[baseIndex] = x;
         surfaceElements[baseIndex + 1] = y;

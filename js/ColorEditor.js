@@ -42,12 +42,14 @@ class ColorEditor {
   setColorAttribute(attr, value) {
     this.color[attr] = value;
     this.setColor(this.color);
+    this.onSetColor(this.color);
   }
 
   setColor(color) {
-    console.log(color);
     this.color = color;
-    this.onSetColor(color);
-    this.indicator.setAttribute('style', `background-color: rgba(${color.r * 255},${color.g * 255},${color.b * 255},${color.a})`)
+    this.indicator.setAttribute('style', `background-color: rgba(${color.r * 255},${color.g * 255},${color.b * 255},${color.a})`);
+    Object.keys(this.inputs).forEach(key => {
+      this.inputs[key].value = this.color[key] * 255;
+    });
   }
 }

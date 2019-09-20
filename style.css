@@ -24,6 +24,11 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: 2vh 2vh 6vh 0 rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+.gradient-mesh.editing {
+  cursor: default;
 }
 
 .gradient-mesh canvas {
@@ -35,7 +40,7 @@ body {
   z-index: -1;
 }
 
-.gradient-mesh .control-point {
+.gradient-mesh.editing .control-point {
   position: absolute;
   width: 10px;
   height: 10px;
