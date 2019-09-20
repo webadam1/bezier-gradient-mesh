@@ -24,7 +24,6 @@ body {
   align-items: center;
   justify-content: center;
   box-shadow: 2vh 2vh 6vh 0 rgba(0, 0, 0, 0.2);
-  overflow: hidden;
 }
 
 .gradient-mesh canvas {
@@ -34,4 +33,17 @@ body {
   left: 0;
   right: 0;
   z-index: -1;
+}
+
+.gradient-mesh .control-point {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  top: 0;
+  left: 0;
+  background-color: #00000055;
+  border: 1px solid white;
+  border-radius: 10px;
+  cursor: pointer;
+  transform: translate(-50%, -50%);
 }

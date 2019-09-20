@@ -7,6 +7,8 @@ camera2.position.y = -2;
 camera2.rotation.x = 0.8;
 scene.add(camera2);
 
+let sceneCamera = camera;
+
 const renderer = new THREE.WebGLRenderer();
 const parentElement = document.querySelector('.gradient-mesh');
 renderer.setSize(parentElement.clientWidth, parentElement.clientHeight);
@@ -19,23 +21,8 @@ scene.add(ambientLight);
 camera.position.z = 10;
 const patchDivCount = 20;
 
-let hermiteColors = [
-  [
-    { r: 1, b: 1, g: 1, a: 1 },
-    { r: 0.3, b: 0.2, g: 0, a: 1 },
-    { r: 0.5, b: 0.4, g: 0.2, a: 1 },
-  ],
-  [
-    { r: 0.4, b: 0.9, g: 0.6, a: 1 },
-    { r: 0.6, b: 0.9, g: 0.96, a: 1 },
-    { r: 0.4, b: 0.5, g: 0.6, a: 1 },
-  ],
-  [
-    { r: 0.02, b: 0.4, g: 0, a: 1 },
-    { r: 0.02, b: 0.3, g: 0, a: 1 },
-    { r: 0.02, b: 0.5, g: 1, a: 1 },
-  ],
-];
+const initialDivisionCount = 4;
+const editor = new Editor(initialDivisionCount, parentElement);
 
 function transpose(matrix) {
   const w = matrix.length || 0;
@@ -79,11 +66,11 @@ const HM = [
 
 const HM_T = transpose(HM);
 
-function getPatch(matrix, i, j, attributeName) {
+function getPatch(matrix, i, j, attributeName, xTangent = 0, yTangent = 0) {
   if (attributeName) {
     return ([
-      [matrix[i][j][attributeName], matrix[i + 1][j][attributeName], 0, 0],
-      [matrix[i][j + 1][attributeName], matrix[i + 1][j + 1][attributeName], 0, 0],
+      [matrix[i][j][attributeName], matrix[i + 1][j][attributeName], xTangent, xTangent],
+      [matrix[i][j + 1][attributeName], matrix[i + 1][j + 1][attributeName], xTangent, xTangent],
       [0, 0, 0, 0],
       [0, 0, 0, 0],
     ]);
@@ -91,33 +78,23 @@ function getPatch(matrix, i, j, attributeName) {
   return ([
     [matrix[i][j], matrix[i + 1][j], 0, 0],
     [matrix[i][j + 1], matrix[i + 1][j + 1], 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 0],
+    [yTangent, yTangent, 0, 0],
+    [yTangent, yTangent, 0, 0],
   ])
 }
 
-function getPatches(colorValues) {
+function getPatches(controlPoints) {
   const patches = [];
-  const columnLength = colorValues.length - 1;
+  const columnLength = controlPoints.length - 1;
   for (let i = 0; i < columnLength; i++) {
-    const rowLength = colorValues[i].length - 1;
+    const rowLength = controlPoints[i].length - 1;
     for (let j = 0; j < rowLength; j++) {
       const patch = {};
-      patch.x = [
-        [i / columnLength, (i + 1) / columnLength, 0.5, 0.5],
-        [i / columnLength, (i + 1) / columnLength, 0.5, 0.5],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0],
-      ];
-      patch.y = [
-        [j / rowLength, j / rowLength, 0, 0],
-        [(j + 1) / rowLength, (j + 1) / rowLength, 0, 0],
-        [0.5, 0.5, 0, 0],
-        [0.5, 0.5, 0, 0],
-      ];
-      patch.r = getPatch(colorValues, i, j, 'r');
-      patch.g = getPatch(colorValues, i, j, 'g');
-      patch.b = getPatch(colorValues, i, j, 'b');
+      patch.x = getPatch(controlPoints, i, j, 'x', 0.5);
+      patch.y = getPatch(controlPoints, i, j, 'y', 0, 0.5);
+      patch.r = getPatch(controlPoints, i, j, 'r');
+      patch.g = getPatch(controlPoints, i, j, 'g');
+      patch.b = getPatch(controlPoints, i, j, 'b');
       patches.push(patch);
     }
   }
@@ -131,7 +108,7 @@ function getPatchPoint(hermitePatch, u, v) {
   return vec[0][0];
 }
 
-const allPatches = getPatches(hermiteColors);
+let allPatches = getPatches(editor.controlPointMatrix);
 let hermitePatches = new THREE.Group();
 let positionBufferAttribute = new THREE.BufferAttribute(new Float32Array([]), 3);
 let colorBufferAttribute = new THREE.BufferAttribute(new Float32Array([]), 3);
@@ -158,7 +135,7 @@ function fillBufferAttributeByPatches(patches, positionAttr, colorAttr) {
         const r = getPatchPoint(patch.r, i / patchDivCount, j / patchDivCount);
         const g = getPatchPoint(patch.g, i / patchDivCount, j / patchDivCount);
         const b = getPatchPoint(patch.b, i / patchDivCount, j / patchDivCount);
-        const z = (r + b + g) / 3;
+        const z = 0;
         const baseIndex = ((i * (patchDivCount + 1)) + j) * 3;
         surfaceElements[baseIndex] = x;
         surfaceElements[baseIndex + 1] = y;
@@ -227,11 +204,29 @@ function setBufferAttributeFromArray(attr, attrIndex, array, vertexIndex) {
 }
 
 function animateHermiteSurface(t) {
+  allPatches = getPatches(editor.controlPointMatrix);
   fillBufferAttributeByPatches(allPatches, gradientMesh.geometry.attributes.position, gradientMesh.geometry.attributes.color);
   gradientMesh.geometry.attributes.position.needsUpdate = true;
   gradientMesh.geometry.attributes.color.needsUpdate = true;
 }
 initializeHermiteSurface();
+
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'Space') {
+    animateHermiteSurface();
+    renderer.render(scene, sceneCamera);
+  }
+  if (e.code === 'Digit1') {
+    animateHermiteSurface();
+    sceneCamera = camera;
+    renderer.render(scene, sceneCamera);
+  }
+  if (e.code === 'Digit2') {
+    animateHermiteSurface();
+    sceneCamera = camera2;
+    renderer.render(scene, sceneCamera);
+  }
+});
 
 const animate = (t) => {
   animateHermiteSurface(t);
