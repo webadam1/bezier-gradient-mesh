@@ -21,8 +21,9 @@ scene.add(ambientLight);
 camera.position.z = 10;
 const patchDivCount = 20;
 
-const initialDivisionCount = 4;
+const initialDivisionCount = 3;
 const editor = new Editor(initialDivisionCount, parentElement);
+const colorEditor = new ColorEditor(document.body, editor.setColor.bind(editor));
 
 function transpose(matrix) {
   const w = matrix.length || 0;
@@ -90,8 +91,8 @@ function getPatches(controlPoints) {
     const rowLength = controlPoints[i].length - 1;
     for (let j = 0; j < rowLength; j++) {
       const patch = {};
-      patch.x = getPatch(controlPoints, i, j, 'x', 0.5);
-      patch.y = getPatch(controlPoints, i, j, 'y', 0, 0.5);
+      patch.x = getPatch(controlPoints, i, j, 'x', 1 / columnLength);
+      patch.y = getPatch(controlPoints, i, j, 'y', 0, 1 / rowLength);
       patch.r = getPatch(controlPoints, i, j, 'r');
       patch.g = getPatch(controlPoints, i, j, 'g');
       patch.b = getPatch(controlPoints, i, j, 'b');

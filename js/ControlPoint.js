@@ -26,7 +26,7 @@ class ControlPoint {
     }
   }
 
-  setColor(r, g, b, a = 1) {
+  setColor({ r, g, b, a = 1 }) {
     this.r = r;
     this.g = g;
     this.b = b;

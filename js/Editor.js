@@ -13,7 +13,7 @@ function debounce(func, wait, immediate) {
     timeout = setTimeout(later, wait);
     if (callNow) func.apply(context, args);
   };
-};
+}
 
 class Editor {
   constructor(initialDivisionCount, container) {
@@ -52,6 +52,7 @@ class Editor {
   initEventListeners() {
     this.container.addEventListener('mousemove', this.onMouseMove.bind(this));
     this.container.addEventListener('mouseup', this.onMouseUp.bind(this));
+    this.container.addEventListener('mousedown', this.onMouseDown.bind(this));
     this.container.addEventListener('touchend', this.onTouchEnd.bind(this));
     window.addEventListener('resize', debounce(() => {
       this.boundingRect = this.container.getBoundingClientRect();
@@ -67,8 +68,15 @@ class Editor {
     }
   }
 
-  onMouseUp() {
+  onMouseDown(e) {
+  }
+
+  onMouseUp(e) {
     this.currentlyMovingCp = null;
+    if (!e.target.classList.contains('control-point')) {
+      this.selectedCp.element.classList.remove('active');
+      this.selectedCp = null;
+    }
   }
 
   onTouchEnd(e) {
@@ -78,7 +86,17 @@ class Editor {
 
   onCpMouseDown(cp) {
     this.currentlyMovingCp = cp;
+    if (this.selectedCp) {
+      this.selectedCp.element.classList.remove('active');
+    }
     this.selectedCp = cp;
+    this.selectedCp.element.classList.add('active');
     console.log('SET CP_UNDER_EDITING', this.currentlyMovingCp.id);
+  }
+
+  setColor(color) {
+    if (this.selectedCp) {
+      this.selectedCp.setColor(color);
+    }
   }
 }
