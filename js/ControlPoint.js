@@ -1,5 +1,5 @@
 class ControlPoint {
-  constructor({ x, y, r, g, b, a = 1, id }, editor) {
+  constructor({ x, y, r, g, b, a = 1, id, xTangentLength = 0, yTangentLength = 0 }, editor) {
     this.editor = editor;
     this.x = x;
     this.y = y;
@@ -8,6 +8,8 @@ class ControlPoint {
     this.b = b;
     this.a = a;
     this.id = id;
+    this.xTangent = { x: xTangentLength, y: 0 };
+    this.yTangent = { x: 0, y: yTangentLength };
     this.initializeDom();
   }
 

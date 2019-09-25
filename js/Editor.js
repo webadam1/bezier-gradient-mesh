@@ -41,6 +41,8 @@ class Editor {
           g: j / this.divisionCount,
           b: j / this.divisionCount,
           id: `control-point-${cpIdCounter++}`,
+          xTangentLength: 1 / this.divisionCount,
+          yTangentLength: 1 / this.divisionCount,
         };
         const cpObject = new ControlPoint(cp, this);
         this.container.appendChild(cpObject.element);

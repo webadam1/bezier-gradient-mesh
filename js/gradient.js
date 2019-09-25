@@ -66,21 +66,31 @@ const HM = [
 
 const HM_T = transpose(HM);
 
-function getPatch(matrix, i, j, attributeName, xTangent = 0, yTangent = 0) {
-  if (attributeName) {
+function getPatchAttribute(matrix, i, j, attributeName, tangentAttributeName) {
+  if (tangentAttributeName) {
     return ([
-      [matrix[i][j][attributeName], matrix[i + 1][j][attributeName], xTangent, xTangent],
-      [matrix[i][j + 1][attributeName], matrix[i + 1][j + 1][attributeName], xTangent, xTangent],
-      [yTangent, yTangent, 0, 0],
-      [yTangent, yTangent, 0, 0],
+      [matrix[i][j][attributeName], matrix[i + 1][j][attributeName], matrix[i][j][tangentAttributeName].x, matrix[i + 1][j][tangentAttributeName].x],
+      [matrix[i][j + 1][attributeName], matrix[i + 1][j + 1][attributeName], matrix[i][j + 1][tangentAttributeName].x, matrix[i + 1][j + 1][tangentAttributeName].x],
+      [matrix[i][j][tangentAttributeName].y, matrix[i + 1][j][tangentAttributeName].y, 0, 0],
+      [matrix[i][j + 1][tangentAttributeName].y, matrix[i + 1][j + 1][tangentAttributeName].y, 0, 0],
     ]);
   }
   return ([
-    [matrix[i][j], matrix[i + 1][j], xTangent, xTangent],
-    [matrix[i][j + 1], matrix[i + 1][j + 1], xTangent, xTangent],
-    [yTangent, yTangent, 0, 0],
-    [yTangent, yTangent, 0, 0],
+    [matrix[i][j][attributeName], matrix[i + 1][j][attributeName], 0, 0],
+    [matrix[i][j + 1][attributeName], matrix[i + 1][j + 1][attributeName], 0, 0],
+    [0, 0, 0, 0],
+    [0, 0, 0, 0],
   ])
+}
+
+function getPatch(controlPoints, i, j) {
+  const patch = {};
+  patch.x = getPatchAttribute(controlPoints, i, j, 'x', 'xTangent');
+  patch.y = getPatchAttribute(controlPoints, i, j, 'y', 'yTangent');
+  patch.r = getPatchAttribute(controlPoints, i, j, 'r');
+  patch.g = getPatchAttribute(controlPoints, i, j, 'g');
+  patch.b = getPatchAttribute(controlPoints, i, j, 'b');
+  return patch;
 }
 
 function getPatches(controlPoints) {
@@ -89,12 +99,7 @@ function getPatches(controlPoints) {
   for (let i = 0; i < columnLength; i++) {
     const rowLength = controlPoints[i].length - 1;
     for (let j = 0; j < rowLength; j++) {
-      const patch = {};
-      patch.x = getPatch(controlPoints, i, j, 'x', 1 / columnLength);
-      patch.y = getPatch(controlPoints, i, j, 'y', 0, 1 / rowLength);
-      patch.r = getPatch(controlPoints, i, j, 'r');
-      patch.g = getPatch(controlPoints, i, j, 'g');
-      patch.b = getPatch(controlPoints, i, j, 'b');
+      const patch = getPatch(controlPoints, i, j);
       patches.push(patch);
     }
   }
