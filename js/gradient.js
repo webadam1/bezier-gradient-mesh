@@ -71,13 +71,13 @@ function getPatch(matrix, i, j, attributeName, xTangent = 0, yTangent = 0) {
     return ([
       [matrix[i][j][attributeName], matrix[i + 1][j][attributeName], xTangent, xTangent],
       [matrix[i][j + 1][attributeName], matrix[i + 1][j + 1][attributeName], xTangent, xTangent],
-      [0, 0, 0, 0],
-      [0, 0, 0, 0],
+      [yTangent, yTangent, 0, 0],
+      [yTangent, yTangent, 0, 0],
     ]);
   }
   return ([
-    [matrix[i][j], matrix[i + 1][j], 0, 0],
-    [matrix[i][j + 1], matrix[i + 1][j + 1], 0, 0],
+    [matrix[i][j], matrix[i + 1][j], xTangent, xTangent],
+    [matrix[i][j + 1], matrix[i + 1][j + 1], xTangent, xTangent],
     [yTangent, yTangent, 0, 0],
     [yTangent, yTangent, 0, 0],
   ])
