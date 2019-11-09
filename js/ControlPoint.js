@@ -22,6 +22,8 @@ class ControlPoint {
       negDir: new SingleTangent({ x: 0, y: yTangentLength, direction: false  }, this),
     };
     this.vTangents.posDir.bindTangent(this.vTangents.negDir);
+    this.uHandlesHidden = false;
+    this.vHandlesHidden = false;
   }
 
   initializeDom() {
@@ -55,6 +57,36 @@ class ControlPoint {
     this.uTangents.negDir.setTangent(this.originalXTangentLength, 0);
     this.vTangents.posDir.setTangent(0, this.originalYTangentLength);
     this.vTangents.negDir.setTangent(0, this.originalYTangentLength);
+    this.uTangents.posDir.setHidden(false);
+    this.uTangents.negDir.setHidden(false);
+    this.vTangents.posDir.setHidden(false);
+    this.vTangents.negDir.setHidden(false);
+  }
+
+  toggleUHandles() {
+    this.uHandlesHidden = !this.uHandlesHidden;
+    this.uTangents.posDir.setHidden(this.uHandlesHidden);
+    this.uTangents.negDir.setHidden(this.uHandlesHidden);
+    if (!this.uHandlesHidden) {
+      this.uTangents.posDir.setTangent(this.originalXTangentLength, 0);
+      this.uTangents.negDir.setTangent(this.originalXTangentLength, 0);
+    } else {
+      this.uTangents.posDir.setTangent(0, 0);
+      this.uTangents.negDir.setTangent(0, 0);
+    }
+  }
+
+  toggleVHandles() {
+    this.vHandlesHidden = !this.vHandlesHidden;
+    this.vTangents.posDir.setHidden(this.vHandlesHidden);
+    this.vTangents.negDir.setHidden(this.vHandlesHidden);
+    if (!this.vHandlesHidden) {
+      this.vTangents.posDir.setTangent(0, this.originalYTangentLength);
+      this.vTangents.negDir.setTangent(0, this.originalYTangentLength);
+    } else {
+      this.vTangents.posDir.setTangent(0, 0);
+      this.vTangents.negDir.setTangent(0, 0);
+    }
   }
 
   onCpMouseDown(e) {

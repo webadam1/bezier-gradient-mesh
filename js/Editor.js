@@ -27,6 +27,7 @@ class Editor {
     this.initEventListeners();
     this.boundingRect = container.getBoundingClientRect();
     this.colorEditor = new ColorEditor(document.body, this.setColor.bind(this));
+    this.movingCpStartPos = { x: null, y: null };
   }
 
   initControlPoints() {
@@ -64,19 +65,6 @@ class Editor {
     }, 500));
   }
 
-  onMouseMove(e) {
-    if (this.currentlyMovingCp) {
-      const x = (e.clientX - this.boundingRect.x) / this.boundingRect.width;
-      const y = (e.clientY - this.boundingRect.y) / this.boundingRect.height;
-      this.currentlyMovingCp.setPosition(x, y);
-    }
-    if (this.currentlyMovingTangent) {
-      const x =  (e.clientX - this.boundingRect.x) - this.selectedCp.x * this.boundingRect.width;
-      const y = (e.clientY - this.boundingRect.y) - this.selectedCp.y * this.boundingRect.height;
-      this.selectedCp.moveTangent(this.currentlyMovingTangent, x, y);
-    }
-  }
-
   onClick(e) {
     if (e.target === this.container) {
       if (this.editing) {
@@ -94,10 +82,34 @@ class Editor {
   onMouseUp(e) {
     this.currentlyMovingCp = null;
     this.currentlyMovingTangent = null;
+    this.movingCpStartPos = { x: null, y: null };
     this.shouldRefresh = false;
     if (e.target.classList.contains('gradient-mesh') && this.selectedCp) {
       this.selectedCp.cpElement.classList.remove('active');
       this.selectedCp = null;
+    }
+  }
+
+  onMouseMove(e) {
+    if (this.currentlyMovingCp) {
+      let x = (e.clientX - this.boundingRect.x) / this.boundingRect.width;
+      let y = (e.clientY - this.boundingRect.y) / this.boundingRect.height;
+      const deltaX = Math.abs(this.movingCpStartPos.x - x);
+      const deltaY = Math.abs(this.movingCpStartPos.y - y);
+      if (e.shiftKey) {
+        x = deltaX > deltaY ? x : this.movingCpStartPos.x;
+        y = deltaX > deltaY ? this.movingCpStartPos.y : y;
+      }
+      if (deltaX + deltaY > 0.03 || e.ctrlKey) {
+        this.currentlyMovingCp.setPosition(x, y);
+      } else {
+        this.currentlyMovingCp.setPosition(this.movingCpStartPos.x, this.movingCpStartPos.y);
+      }
+    }
+    if (this.currentlyMovingTangent) {
+      const x =  (e.clientX - this.boundingRect.x) - this.selectedCp.x * this.boundingRect.width;
+      const y = (e.clientY - this.boundingRect.y) - this.selectedCp.y * this.boundingRect.height;
+      this.selectedCp.moveTangent(this.currentlyMovingTangent, x, y);
     }
   }
 
@@ -107,6 +119,18 @@ class Editor {
       return true;
     }
     return false;
+  }
+
+  toggleCpXHandles() {
+    if (this.editing && this.selectedCp) {
+      this.selectedCp.toggleUHandles();
+    }
+  }
+
+  toggleCpYHandles() {
+    if (this.editing && this.selectedCp) {
+      this.selectedCp.toggleVHandles();
+    }
   }
 
   toggleTangentBinding() {
@@ -123,6 +147,8 @@ class Editor {
   onCpMouseDown(cp) {
     this.currentlyMovingCp = cp;
     this.shouldRefresh = true;
+    this.movingCpStartPos.x = cp.x;
+    this.movingCpStartPos.y = cp.y;
     if (this.selectedCp) {
       this.selectedCp.cpElement.classList.remove('active');
     }

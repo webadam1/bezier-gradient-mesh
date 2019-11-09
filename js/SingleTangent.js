@@ -70,4 +70,12 @@ class SingleTangent {
       console.warn('no tangentPair set for tangent');
     }
   }
+
+  setHidden(hidden) {
+    if (hidden) {
+      this.element.classList.add('hidden');
+    } else {
+      this.element.classList.remove('hidden');
+    }
+  }
 }

@@ -236,6 +236,16 @@ window.addEventListener('keydown', (e) => {
     calculateHermiteSurface();
     renderer.render(scene, sceneCamera);
   }
+  if (e.code === 'KeyX') {
+    editor.toggleCpXHandles();
+    calculateHermiteSurface();
+    renderer.render(scene, sceneCamera);
+  }
+  if (e.code === 'KeyY') {
+    editor.toggleCpYHandles();
+    calculateHermiteSurface();
+    renderer.render(scene, sceneCamera);
+  }
   if (e.code === 'ShiftLeft') {
     editor.toggleTangentBinding();
     calculateHermiteSurface();

@@ -73,6 +73,10 @@ body {
   display: block;
 }
 
+.gradient-mesh .control-point.active .tangent-point.hidden {
+  display: none;
+}
+
 .color-editor {
   display: none;
   position: absolute;
