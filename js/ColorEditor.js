@@ -1,14 +1,15 @@
 function createInput(onChange) {
   const input = document.createElement('input');
-  input.setAttribute('type', 'number');
+  input.setAttribute('type', 'range');
   input.setAttribute('max', '255');
   input.setAttribute('min', '0');
   input.setAttribute('value', '255');
-  input.addEventListener('keydown', e => {
-    e.stopPropagation();
+  input.classList.add('slider');
+  input.addEventListener('mousemove', () => {
+    onChange(input.value);
   });
-  input.addEventListener('change', e => {
-    onChange(e);
+  input.addEventListener('change', () => {
+    onChange(input.value);
   });
   return input;
 }
@@ -27,10 +28,10 @@ class ColorEditor {
     this.indicator = document.createElement('div');
     this.indicator.classList.add('color-editor__indicator');
     this.inputs = {
-      r: createInput((e) => this.setColorAttribute('r', e.target.value / 255)),
-      g: createInput((e) => this.setColorAttribute('g', e.target.value / 255)),
-      b: createInput((e) => this.setColorAttribute('b', e.target.value / 255)),
-      a: createInput((e) => this.setColorAttribute('b', e.target.value)),
+      r: createInput((value) => this.setColorAttribute('r', value / 255)),
+      g: createInput((value) => this.setColorAttribute('g', value / 255)),
+      b: createInput((value) => this.setColorAttribute('b', value / 255)),
+      a: createInput((value) => this.setColorAttribute('b', value)),
     };
     this.wrapper.appendChild(this.indicator);
     this.wrapper.appendChild(this.inputs.r);

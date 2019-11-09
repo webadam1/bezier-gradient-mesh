@@ -29,6 +29,7 @@ body {
 
 .gradient-mesh.editing {
   cursor: default;
+  user-select: none;
 }
 
 .gradient-mesh canvas {
@@ -58,18 +59,69 @@ body {
   border-color: #000;
 }
 
-.color-editor {
+.gradient-mesh.editing .tangent-point {
+  display: none;
   position: absolute;
-  display: flex;
+  width: 5px;
+  height: 5px;
+  background-color: #000;
+  border: 1px solid white;
+  cursor: pointer;
+}
+
+.gradient-mesh .control-point.active .tangent-point {
+  display: block;
+}
+
+.color-editor {
+  display: none;
+  position: absolute;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   right: 40px;
+  background-color: #0024;
+  padding: 24px 12px;
+  border-radius: 3px;
 }
 
-.color-editor input {
-  margin-bottom: 10px;
-  padding: 5px;
+.color-editor.editing {
+  display: flex;
+}
+
+.color-editor input.slider {
+  margin-top: 30px;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 2px;
+  border-radius: 1px;
+  background: #ffffff88;
+  outline: none;
+  opacity: 0.7;
+  transition: opacity .2s;
+}
+
+.color-editor input.slider:hover {
+  opacity: 1;
+}
+
+.color-editor input.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  cursor: pointer;
+  border-radius: 5px;
+}
+
+.color-editor input.slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  background: #fff;
+  cursor: pointer;
+  border-radius: 5px;
 }
 
 .color-editor__indicator {

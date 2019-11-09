@@ -18,9 +18,11 @@ function debounce(func, wait, immediate) {
 class Editor {
   constructor(initialDivisionCount, container) {
     this.container = container;
+    this.editing = false;
     this.divisionCount = initialDivisionCount;
     this.currentlyMovingCp = null;
     this.selectedCp = null;
+    this.shouldRefresh = true;
     this.initControlPoints();
     this.initEventListeners();
     this.boundingRect = container.getBoundingClientRect();
@@ -45,7 +47,7 @@ class Editor {
           yTangentLength: 1 / this.divisionCount,
         };
         const cpObject = new ControlPoint(cp, this);
-        this.container.appendChild(cpObject.element);
+        this.container.appendChild(cpObject.cpElement);
         this.controlPointArray.push(cpObject);
         this.controlPointMatrix[i].push(cpObject);
       }
@@ -54,12 +56,11 @@ class Editor {
 
   initEventListeners() {
     this.container.addEventListener('click', this.onClick.bind(this));
-    this.container.addEventListener('mousemove', this.onMouseMove.bind(this));
     this.container.addEventListener('mouseup', this.onMouseUp.bind(this));
     this.container.addEventListener('touchend', this.onTouchEnd.bind(this));
+    window.addEventListener('mousemove', this.onMouseMove.bind(this));
     window.addEventListener('resize', debounce(() => {
       this.boundingRect = this.container.getBoundingClientRect();
-      console.log(this.boundingRect);
     }, 500));
   }
 
@@ -69,6 +70,11 @@ class Editor {
       const y = (e.clientY - this.boundingRect.y) / this.boundingRect.height;
       this.currentlyMovingCp.setPosition(x, y);
     }
+    if (this.currentlyMovingTangent) {
+      const x =  (e.clientX - this.boundingRect.x) - this.selectedCp.x * this.boundingRect.width;
+      const y = (e.clientY - this.boundingRect.y) - this.selectedCp.y * this.boundingRect.height;
+      this.selectedCp.moveTangent(this.currentlyMovingTangent, x, y);
+    }
   }
 
   onClick(e) {
@@ -76,18 +82,36 @@ class Editor {
       if (this.editing) {
         this.editing = false;
         this.container.classList.remove('editing');
+        this.colorEditor.wrapper.classList.remove('editing');
       } else {
         this.editing = true;
         this.container.classList.add('editing');
+        this.colorEditor.wrapper.classList.add('editing');
       }
     }
   }
 
   onMouseUp(e) {
     this.currentlyMovingCp = null;
-    if (!e.target.classList.contains('control-point') && this.selectedCp) {
-      this.selectedCp.element.classList.remove('active');
+    this.currentlyMovingTangent = null;
+    this.shouldRefresh = false;
+    if (e.target.classList.contains('gradient-mesh') && this.selectedCp) {
+      this.selectedCp.cpElement.classList.remove('active');
       this.selectedCp = null;
+    }
+  }
+
+  resetSelectedCpTangent() {
+    if (this.editing && this.selectedCp) {
+      this.selectedCp.resetTangents();
+      return true;
+    }
+    return false;
+  }
+
+  toggleTangentBinding() {
+    if (this.editing && this.selectedCp && this.currentlyMovingTangent) {
+      this.currentlyMovingTangent.toggleBindTangents();
     }
   }
 
@@ -98,13 +122,21 @@ class Editor {
 
   onCpMouseDown(cp) {
     this.currentlyMovingCp = cp;
+    this.shouldRefresh = true;
     if (this.selectedCp) {
-      this.selectedCp.element.classList.remove('active');
+      this.selectedCp.cpElement.classList.remove('active');
     }
     this.selectedCp = cp;
-    this.selectedCp.element.classList.add('active');
+    this.selectedCp.cpElement.classList.add('active');
     this.colorEditor.setColor(cp);
     console.log('SET CP_UNDER_EDITING', this.currentlyMovingCp.id);
+  }
+
+  onTangentMouseDown(tangent) {
+    this.shouldRefresh = true;
+    if (this.selectedCp) {
+      this.currentlyMovingTangent = tangent;
+    }
   }
 
   setColor(color) {

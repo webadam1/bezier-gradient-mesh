@@ -1,10 +1,10 @@
 const scene = new THREE.Scene();
 const camera = new THREE.OrthographicCamera( 0, 1, 0, 1, 1, 1000 );
 const camera2 = new THREE.PerspectiveCamera( 50, 1, 1, 1000 );
-camera2.position.z = 1.5;
+camera2.position.z = 3;
 camera2.position.x = 0.5;
-camera2.position.y = -1;
-camera2.rotation.x = 0.8;
+camera2.position.y = 0.5;
+camera2.lookAt(0.5, 0.5, 0);
 scene.add(camera2);
 
 let sceneCamera = camera;
@@ -66,13 +66,13 @@ const HM = [
 
 const HM_T = transpose(HM);
 
-function getPatchAttribute(matrix, i, j, attributeName, tangentAttributeName) {
-  if (tangentAttributeName) {
+function getPatchAttribute(matrix, i, j, attributeName, tangentName) {
+  if (tangentName) {
     return ([
-      [matrix[i][j][attributeName], matrix[i + 1][j][attributeName], matrix[i][j][tangentAttributeName].x, matrix[i + 1][j][tangentAttributeName].x],
-      [matrix[i][j + 1][attributeName], matrix[i + 1][j + 1][attributeName], matrix[i][j + 1][tangentAttributeName].x, matrix[i + 1][j + 1][tangentAttributeName].x],
-      [matrix[i][j][tangentAttributeName].y, matrix[i + 1][j][tangentAttributeName].y, 0, 0],
-      [matrix[i][j + 1][tangentAttributeName].y, matrix[i + 1][j + 1][tangentAttributeName].y, 0, 0],
+      [matrix[i][j][attributeName], matrix[i + 1][j][attributeName], matrix[i][j][tangentName].negDir.x, matrix[i + 1][j][tangentName].posDir.x],
+      [matrix[i][j + 1][attributeName], matrix[i + 1][j + 1][attributeName], matrix[i][j + 1][tangentName].negDir.x, matrix[i + 1][j + 1][tangentName].posDir.x],
+      [matrix[i][j][tangentName].negDir.y, matrix[i + 1][j][tangentName].negDir.y, 0, 0],
+      [matrix[i][j + 1][tangentName].posDir.y, matrix[i + 1][j + 1][tangentName].posDir.y, 0, 0],
     ]);
   }
   return ([
@@ -85,8 +85,8 @@ function getPatchAttribute(matrix, i, j, attributeName, tangentAttributeName) {
 
 function getPatch(controlPoints, i, j) {
   const patch = {};
-  patch.x = getPatchAttribute(controlPoints, i, j, 'x', 'xTangent');
-  patch.y = getPatchAttribute(controlPoints, i, j, 'y', 'yTangent');
+  patch.x = getPatchAttribute(controlPoints, i, j, 'x', 'uTangents');
+  patch.y = getPatchAttribute(controlPoints, i, j, 'y', 'vTangents');
   patch.r = getPatchAttribute(controlPoints, i, j, 'r');
   patch.g = getPatchAttribute(controlPoints, i, j, 'g');
   patch.b = getPatchAttribute(controlPoints, i, j, 'b');
@@ -208,7 +208,7 @@ function setBufferAttributeFromArray(attr, attrIndex, array, vertexIndex) {
   attr.setXYZ(attrIndex, array[vertexIndex], array[vertexIndex + 1], array[vertexIndex + 2]);
 }
 
-function animateHermiteSurface(t) {
+function calculateHermiteSurface(t) {
   allPatches = getPatches(editor.controlPointMatrix);
   fillBufferAttributeByPatches(allPatches, gradientMesh.geometry.attributes.position, gradientMesh.geometry.attributes.color);
   gradientMesh.geometry.attributes.position.needsUpdate = true;
@@ -218,25 +218,37 @@ initializeHermiteSurface();
 
 window.addEventListener('keydown', (e) => {
   if (e.code === 'Space') {
-    animateHermiteSurface();
+    calculateHermiteSurface();
     renderer.render(scene, sceneCamera);
   }
   if (e.code === 'Digit1') {
-    animateHermiteSurface();
+    calculateHermiteSurface();
     sceneCamera = camera;
     renderer.render(scene, sceneCamera);
   }
   if (e.code === 'Digit2') {
-    animateHermiteSurface();
+    calculateHermiteSurface();
     sceneCamera = camera2;
+    renderer.render(scene, sceneCamera);
+  }
+  if (e.code === 'KeyR') {
+    editor.resetSelectedCpTangent();
+    calculateHermiteSurface();
+    renderer.render(scene, sceneCamera);
+  }
+  if (e.code === 'ShiftLeft') {
+    editor.toggleTangentBinding();
+    calculateHermiteSurface();
     renderer.render(scene, sceneCamera);
   }
 });
 
 const animate = (t) => {
-  animateHermiteSurface(t);
-  renderer.render(scene, camera);
-	// requestAnimationFrame(() => animate(t + 0.05));
+  if (editor.shouldRefresh) {
+    calculateHermiteSurface(t);
+    renderer.render(scene, sceneCamera);
+  }
+  requestAnimationFrame(() => animate(t + 0.05));
 };
 
 animate(0);

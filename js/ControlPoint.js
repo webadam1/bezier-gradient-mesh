@@ -8,23 +8,34 @@ class ControlPoint {
     this.b = b;
     this.a = a;
     this.id = id;
-    this.xTangent = { x: xTangentLength, y: 0 };
-    this.yTangent = { x: 0, y: yTangentLength };
+    this.cpElement = null;
     this.initializeDom();
+    this.originalXTangentLength = xTangentLength;
+    this.originalYTangentLength = yTangentLength;
+    this.uTangents = {
+      posDir: new SingleTangent({ x: xTangentLength, y: 0, direction: true }, this),
+      negDir: new SingleTangent({ x: xTangentLength, y: 0, direction: false }, this),
+    };
+    this.uTangents.posDir.bindTangent(this.uTangents.negDir);
+    this.vTangents = {
+      posDir: new SingleTangent({ x: 0, y: yTangentLength, direction: true  }, this),
+      negDir: new SingleTangent({ x: 0, y: yTangentLength, direction: false  }, this),
+    };
+    this.vTangents.posDir.bindTangent(this.vTangents.negDir);
   }
 
   initializeDom() {
-    this.element = document.createElement('div');
-    this.element.classList.add('control-point');
-    this.element.setAttribute('style', `top: ${100 * this.y}%; left: ${100 * this.x}%;`);
-    this.element.addEventListener('mousedown', this.onMouseDown.bind(this));
+    this.cpElement = document.createElement('div');
+    this.cpElement.classList.add('control-point');
+    this.cpElement.setAttribute('style', `top: ${100 * this.y}%; left: ${100 * this.x}%;`);
+    this.cpElement.addEventListener('mousedown', this.onCpMouseDown.bind(this));
   }
 
   setPosition(x, y) {
     this.x = x;
     this.y = y;
-    if (this.element) {
-      this.element.setAttribute('style', `top: ${100 * y}%; left: ${100 * x}%;`);
+    if (this.cpElement) {
+      this.cpElement.setAttribute('style', `top: ${100 * y}%; left: ${100 * x}%;`);
     }
   }
 
@@ -35,7 +46,25 @@ class ControlPoint {
     this.a = a;
   }
 
-  onMouseDown() {
-    this.editor.onCpMouseDown(this);
+  moveTangent(tangent, x, y) {
+    tangent.moveTangent(x, y);
+  }
+
+  resetTangents() {
+    this.uTangents.posDir.setTangent(this.originalXTangentLength, 0);
+    this.uTangents.negDir.setTangent(this.originalXTangentLength, 0);
+    this.vTangents.posDir.setTangent(0, this.originalYTangentLength);
+    this.vTangents.negDir.setTangent(0, this.originalYTangentLength);
+  }
+
+  onCpMouseDown(e) {
+    if (e.target === this.cpElement) {
+      console.log('cpMouseDown');
+      this.editor.onCpMouseDown(this);
+    }
+  }
+
+  onTangentMouseDown(tangent) {
+    this.editor.onTangentMouseDown(tangent);
   }
 }
