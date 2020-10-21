@@ -12,6 +12,12 @@ body {
   justify-content: center;
 }
 
+.hotkeys {
+  position: absolute;
+  left: inherit;
+  margin: 3rem;
+}
+
 .gradient-mesh {
   position: relative;
   display: flex;
