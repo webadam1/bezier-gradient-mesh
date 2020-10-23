@@ -12,6 +12,15 @@ body {
   justify-content: center;
 }
 
+.hotkey-button {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background-color: #0024;
+  border: none;
+  padding: 1rem;
+  border-radius: 3px;
+}
 .hotkeys {
   position: absolute;
   left: inherit;
