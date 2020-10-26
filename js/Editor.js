@@ -133,6 +133,18 @@ class Editor {
     }
   }
 
+  resetCpXHandles() {
+    if (this.editing && this.selectedCp) {
+      this.selectedCp.resetUHandles();
+    }
+  }
+
+  resetCpYHandles() {
+    if (this.editing && this.selectedCp) {
+      this.selectedCp.resetVHandles();
+    }
+  }
+
   toggleTangentBinding() {
     if (this.editing && this.selectedCp && this.currentlyMovingTangent) {
       this.currentlyMovingTangent.toggleBindTangents();
