@@ -18,8 +18,8 @@ class ControlPoint {
     };
     this.uTangents.posDir.bindTangent(this.uTangents.negDir);
     this.vTangents = {
-      posDir: new SingleTangent({ x: 0, y: yTangentLength, direction: true  }, this),
-      negDir: new SingleTangent({ x: 0, y: yTangentLength, direction: false  }, this),
+      posDir: new SingleTangent({ x: 0, y: yTangentLength, direction: true }, this),
+      negDir: new SingleTangent({ x: 0, y: yTangentLength, direction: false }, this),
     };
     this.vTangents.posDir.bindTangent(this.vTangents.negDir);
     this.uHandlesHidden = false;
@@ -96,6 +96,20 @@ class ControlPoint {
       this.vTangents.posDir.setTangent(0, 0);
       this.vTangents.negDir.setTangent(0, 0);
     }
+  }
+
+  resetUHandles() {
+    this.uTangents.posDir.setTangent(this.originalXTangentLength, 0);
+    this.uTangents.negDir.setTangent(this.originalXTangentLength, 0);
+    this.uTangents.posDir.setHidden(false);
+    this.uTangents.negDir.setHidden(false);
+  }
+
+  resetVHandles() {
+    this.vTangents.posDir.setTangent(0, this.originalYTangentLength);
+    this.vTangents.negDir.setTangent(0, this.originalYTangentLength);
+    this.vTangents.posDir.setHidden(false);
+    this.vTangents.negDir.setHidden(false);
   }
 
   onCpMouseDown(e) {
