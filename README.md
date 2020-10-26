@@ -1,6 +1,15 @@
 # bezier-gradient-mesh
 Experimenting with three.js based gradient mesh rendering
 
+To start the application open index.js.
+
+With clicking on the gradient you can switch to editor mode.
+You can choose a control point to manipulate by clicking on it. To change its colour, use the sidebar, then apply it with the `spacebar`. 
+To rearrange the handles of a control point, simply drag them. While dragging, you can press the left `Shift` to toggle separated handles. 
+You can toggle the X and Y handles with `X` and `Y` keys.
+To reset all handles, press `R`.
+To switch between cameras press `1` or `2`.
+
 Useful resources:
 <ul>
 <li><a target="_blank" href="https://link.springer.com/content/pdf/10.1007%2Fs00371-018-1547-1.pdf">Locally refinable gradient meshes</a></li>
