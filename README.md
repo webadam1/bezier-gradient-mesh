@@ -1,6 +1,8 @@
 # bezier-gradient-mesh
 Experimenting with three.js based gradient mesh rendering
 
+To reset all X or Y handles separately, press `X`/`Y`.
+
 Useful resources:
 <ul>
 <li><a target="_blank" href="https://link.springer.com/content/pdf/10.1007%2Fs00371-018-1547-1.pdf">Locally refinable gradient meshes</a></li>
