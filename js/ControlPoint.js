@@ -24,6 +24,11 @@ class ControlPoint {
     this.vTangents.posDir.bindTangent(this.vTangents.negDir);
     this.uHandlesHidden = false;
     this.vHandlesHidden = false;
+
+    this.prevUHandleX = xTangentLength;
+    this.prevUHandleY = yTangentLength;
+    this.prevVHandleX = xTangentLength;
+    this.prevVHandleY = yTangentLength;
   }
 
   initializeDom() {
@@ -68,9 +73,11 @@ class ControlPoint {
     this.uTangents.posDir.setHidden(this.uHandlesHidden);
     this.uTangents.negDir.setHidden(this.uHandlesHidden);
     if (!this.uHandlesHidden) {
-      this.uTangents.posDir.setTangent(this.originalXTangentLength, 0);
-      this.uTangents.negDir.setTangent(this.originalXTangentLength, 0);
+      this.uTangents.posDir.setTangent(this.prevUHandleX, this.prevUHandleY);
+      this.uTangents.negDir.setTangent(this.prevUHandleX, this.prevUHandleY);
     } else {
+      this.prevUHandleX = this.uTangents.posDir.x;
+      this.prevUHandleY = this.uTangents.posDir.y;
       this.uTangents.posDir.setTangent(0, 0);
       this.uTangents.negDir.setTangent(0, 0);
     }
@@ -81,9 +88,11 @@ class ControlPoint {
     this.vTangents.posDir.setHidden(this.vHandlesHidden);
     this.vTangents.negDir.setHidden(this.vHandlesHidden);
     if (!this.vHandlesHidden) {
-      this.vTangents.posDir.setTangent(0, this.originalYTangentLength);
-      this.vTangents.negDir.setTangent(0, this.originalYTangentLength);
+      this.vTangents.posDir.setTangent(this.prevVHandleX, this.prevVHandleY);
+      this.vTangents.negDir.setTangent(this.prevVHandleX, this.prevVHandleY);
     } else {
+      this.prevVHandleX = this.vTangents.posDir.x;
+      this.prevVHandleY = this.vTangents.posDir.y;
       this.vTangents.posDir.setTangent(0, 0);
       this.vTangents.negDir.setTangent(0, 0);
     }
