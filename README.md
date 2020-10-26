@@ -8,6 +8,7 @@ You can choose a control point to manipulate by clicking on it. To change its co
 To rearrange the handles of a control point, simply drag them. While dragging, you can press the left `Shift` to toggle separated handles. 
 You can toggle the X and Y handles with `X` and `Y` keys.
 To reset all handles, press `R`.
+To reset all X or Y handles separately, press `X`/`Y`.
 To switch between cameras press `1` or `2`.
 
 Useful resources:
